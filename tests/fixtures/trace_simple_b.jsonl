@@ -1,0 +1,23 @@
+[
+  {
+    "id": "trace_simple_b",
+    "session_id": "sess_test_002",
+    "prompt": "fix the login bug and add tests",
+    "tool_calls": [
+      {"id":"c1","tool_name":"read","args":{"path":"src/auth.rs"},"timestamp":"2026-06-12T11:00:00Z","duration_ms":100,"result_id":null},
+      {"id":"c2","tool_name":"test","args":{"test_name":"test_login"},"timestamp":"2026-06-12T11:00:30Z","duration_ms":500,"result_id":null},
+      {"id":"c3","tool_name":"edit","args":{"path":"src/auth.rs","old":"bug","new":"fix_v2"},"timestamp":"2026-06-12T11:01:00Z","duration_ms":200,"result_id":null},
+      {"id":"c4","tool_name":"test","args":{"test_name":"test_login"},"timestamp":"2026-06-12T11:01:30Z","duration_ms":400,"result_id":null},
+      {"id":"c5","tool_name":"commit","args":{"message":"fix login bug with tests"},"timestamp":"2026-06-12T11:02:00Z","duration_ms":150,"result_id":null}
+    ],
+    "observations": [],
+    "final_output": "Fixed the login bug and added regression tests",
+    "token_usage": {"input_tokens": 450, "output_tokens": 180, "cache_read_tokens": null, "cache_write_tokens": null},
+    "started_at": "2026-06-12T11:00:00Z",
+    "finished_at": "2026-06-12T11:02:00Z",
+    "source": {"type": "captured", "agent_name": "paporot_test"},
+    "tags": ["test"],
+    "capability_ids": ["cap_login_fix"],
+    "deleted": false
+  }
+]

@@ -1,0 +1,21 @@
+[
+  {
+    "id": "trace_simple_a",
+    "session_id": "sess_test_001",
+    "prompt": "fix the login bug",
+    "tool_calls": [
+      {"id":"c1","tool_name":"read","args":{"path":"src/auth.rs"},"timestamp":"2026-06-12T10:00:00Z","duration_ms":100,"result_id":null},
+      {"id":"c2","tool_name":"edit","args":{"path":"src/auth.rs","old":"bug","new":"fix"},"timestamp":"2026-06-12T10:00:30Z","duration_ms":200,"result_id":null},
+      {"id":"c3","tool_name":"commit","args":{"message":"fix login bug"},"timestamp":"2026-06-12T10:01:00Z","duration_ms":150,"result_id":null}
+    ],
+    "observations": [],
+    "final_output": "Fixed the login bug",
+    "token_usage": {"input_tokens": 300, "output_tokens": 100, "cache_read_tokens": null, "cache_write_tokens": null},
+    "started_at": "2026-06-12T10:00:00Z",
+    "finished_at": "2026-06-12T10:01:00Z",
+    "source": {"type": "captured", "agent_name": "paporot_test"},
+    "tags": ["test"],
+    "capability_ids": ["cap_login_fix"],
+    "deleted": false
+  }
+]

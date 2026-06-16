@@ -1,0 +1,17 @@
+[
+  {
+    "id": "trace_empty",
+    "session_id": "sess_test_empty",
+    "prompt": "do nothing",
+    "tool_calls": [],
+    "observations": [],
+    "final_output": "done",
+    "token_usage": {"input_tokens": 10, "output_tokens": 5, "cache_read_tokens": null, "cache_write_tokens": null},
+    "started_at": "2026-06-12T12:00:00Z",
+    "finished_at": "2026-06-12T12:00:01Z",
+    "source": {"type": "captured", "agent_name": "paporot_test"},
+    "tags": ["test"],
+    "capability_ids": [],
+    "deleted": false
+  }
+]
