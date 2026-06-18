@@ -24,7 +24,7 @@ pub struct Config {
 /// LLM 配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LlmConfig {
-    /// API 端点 URL（兼容 OpenAI / Anthropic）
+    /// API 端点 URL（DeepSeek / OpenAI 兼容）
     #[serde(default = "default_llm_endpoint")]
     pub endpoint: String,
     /// API Key（也支持环境变量 Paporot_API_KEY）
@@ -48,11 +48,11 @@ pub struct LlmConfig {
 }
 
 fn default_llm_endpoint() -> String {
-    "https://api.openai.com/v1/chat/completions".into()
+    "https://api.deepseek.com/v1/chat/completions".into()
 }
 
 fn default_llm_model() -> String {
-    "gpt-4o".into()
+    "deepseek-v4-pro".into()
 }
 
 fn default_temperature() -> f32 {
@@ -219,12 +219,12 @@ impl Config {
 # 复制此文件到 .Paporot/config.toml 并按需修改
 
 [llm]
-# LLM API 端点（OpenAI 兼容接口）
-endpoint = "https://api.openai.com/v1/chat/completions"
+# LLM API 端点（OpenAI 兼容接口，默认 DeepSeek）
+endpoint = "https://api.deepseek.com/v1/chat/completions"
 # API Key（也可通过环境变量 Paporot_API_KEY 设置）
 api_key = ""
 # 模型名称
-model = "gpt-4o"
+model = "deepseek-v4-pro"
 # 温度（0.0-1.0，推荐 0.2-0.4）
 temperature = 0.3
 # 最大输出 token
@@ -274,7 +274,7 @@ mod tests {
     #[test]
     fn test_sample_toml_parses() {
         let config: Config = toml::from_str(Config::sample_toml()).unwrap();
-        assert_eq!(config.llm.model, "gpt-4o");
+        assert_eq!(config.llm.model, "deepseek-v4-pro");
         assert_eq!(config.agent.diff_warn_threshold, 32000);
         assert!(!config.trace.auto_redact);
     }
