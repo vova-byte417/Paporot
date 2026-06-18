@@ -1,0 +1,55 @@
+[skill]
+name = "prd-coverage"
+version = "0.1.0"
+requires_paporot = ">=0.2.0"
+description = "对比 PRD 需求与代码实现，计算需求覆盖率（需 --prd 参数激活）"
+timeout_secs = 45
+
+[inputs]
+required = ["prd_content", "repo_tree", "ast_symbols"]
+
+[outputs]
+schema = "prd_coverage_output"
+
+[llm_calls]
+max_calls = 3
+preferred_model = "deepseek-pro"
+
+[dependencies]
+uses_outputs_from = ["behavior-boundary-discovery"]
+
+[quality]
+checks = [
+    "every_requirement_has_status",
+    "evidenced_requirements_cite_symbols",
+    "coverage_pct_in_range_0_to_100"
+]
+
+# ── Procedure ──
+# Step 1: Parse PRD document, extract individual requirements
+#   Split by section/heading, identify items with "must", "shall", "should"
+# Step 2: For each requirement:
+#   Search repo_tree and ast_symbols for matching implementations
+#   Classify: implemented (symbols found), partial (some found but incomplete), not_implemented
+# Step 3: Cross-reference with behavior_boundary output
+#   Distinguish "implemented but not behavioral" vs "implemented AND user-visible"
+# Step 4: Calculate coverage metrics
+# Step 5: Generate per-requirement detail
+
+# ── Output Schema ──
+# {
+#   "total_requirements": "number",
+#   "implemented": "number",
+#   "partial": "number",
+#   "not_implemented": "number",
+#   "coverage_pct": "number (0.0-100.0)",
+#   "details": [
+#     {
+#       "requirement": "string (from PRD)",
+#       "status": "implemented" | "partial" | "not_implemented",
+#       "mapped_to": ["string (function/module names)"],
+#       "prd_section": "string"
+#     }
+#   ],
+#   "summary": "string (human-readable coverage summary)"
+# }

@@ -1,413 +1,299 @@
-//! Paporot 主入口 —— AI 生成软件的行为版本控制与审计系统
+//! Paporot — WASM Sandbox Loader (Native Entry Point)
+//!
+//! 极薄的 wasmtime loader。加载 paporot-core.wasm 并通过 3 个 host function
+//! 向沙盒内的分析管线提供 read_file / write_file / llm_call 能力。
+//! CLI 参数通过 WASI args 透传到 .wasm 的 main()。
 
-mod agent;
-mod analysis;
-mod cli;
-mod commands;
+use anyhow::{Context, Result};
+use std::fs;
+use std::path::PathBuf;
+use wasmtime::*;
+use wasmtime_wasi::{DirPerms, FilePerms, WasiCtxBuilder};
+use wasmtime_wasi::preview1::WasiP1Ctx;
+
 mod config;
-mod graph;
-mod llm;
-mod prompts;
-mod storage;
-mod trace;
-mod trajectory;
-mod types;
 
-use clap::Parser;
+fn main() -> Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+    let paporot_dir = find_paporot_dir()?;
+    let wasm_path = paporot_dir.join("bin").join("paporot-core.wasm");
 
-use crate::trace::types::RedactConfig;
-
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    let cli = cli::Cli::parse();
-
-    // 加载配置
-    let config = config::Config::load_or_default(&cli.config);
-
-    // 初始化 Agent
-    let agent = agent::Agent::new(config.clone());
-
-    // 初始化存储
-    agent.storage.init()?;
-
-    match cli.command {
-        cli::Commands::Snapshot { action } => match action {
-            cli::SnapshotAction::Create {
-                diff_range,
-                message,
-                prd,
-                diff_file,
-                output_dir,
-            } => {
-                commands::snapshot::run(
-                    &agent,
-                    &diff_range,
-                    &message,
-                    prd.as_deref(),
-                    diff_file.as_deref(),
-                    &output_dir,
-                )
-                .await?;
-            }
-        },
-
-        cli::Commands::Diff { from, to, format } => {
-            commands::diff::run(&agent, from.as_deref(), to.as_deref(), &format).await?;
-        }
-
-        cli::Commands::Coverage { prd, version } => {
-            commands::coverage::run(&agent, prd.as_deref(), version.as_deref()).await?;
-        }
-
-        cli::Commands::Regression { from, to } => {
-            commands::regression::run(&agent, from.as_deref(), to.as_deref()).await?;
-        }
-
-        cli::Commands::Risk { version } => {
-            commands::risk::run(&agent, version.as_deref()).await?;
-        }
-
-        cli::Commands::Review { diff_source, prd } => {
-            commands::review::run(&agent, diff_source.as_deref(), prd.as_deref()).await?;
-        }
-
-        cli::Commands::Version => {
-            commands::version::run(&agent).await?;
-        }
-
-        cli::Commands::Status => {
-            commands::version::status(&agent).await?;
-        }
-
-        cli::Commands::Graph { action } => match action {
-            cli::GraphAction::Show { version, capability, depth } => {
-                commands::graph::show(&agent, version.as_deref(), capability.as_deref(), depth)?;
-            }
-            cli::GraphAction::Impact { capability } => {
-                commands::graph::impact(&agent, &capability)?;
-            }
-            cli::GraphAction::Evolution { capability } => {
-                commands::graph::evolution(&agent, &capability)?;
-            }
-            cli::GraphAction::Cycles => {
-                commands::graph::cycles(&agent)?;
-            }
-            cli::GraphAction::Module { name } => {
-                commands::graph::module(&agent, &name)?;
-            }
-        },
-
-        cli::Commands::Feedback { action } => {
-            use crate::types::{FeedbackStore, FEEDBACK_DIR, REVIEWS_FILE};
-            let reviews_path = std::path::Path::new(FEEDBACK_DIR).join(REVIEWS_FILE);
-            let mut feedback = FeedbackStore::load_or_new(&reviews_path)
-                .unwrap_or_else(|_| FeedbackStore {
-                    reviews: vec![],
-                    stats: crate::types::FeedbackStats::default(),
-                });
-
-            match action {
-                cli::FeedbackAction::Approve { capability, version, reviewer, comment } => {
-                    commands::feedback::approve(&mut feedback, &capability, &version, &reviewer, comment.as_deref())?;
-                }
-                cli::FeedbackAction::Reject { capability, version, reviewer, reason } => {
-                    commands::feedback::reject(&mut feedback, &capability, &version, &reviewer, reason.as_deref())?;
-                }
-                cli::FeedbackAction::Correct { capability, version, reviewer, name, desc, comment } => {
-                    commands::feedback::correct(&mut feedback, &capability, &version, &reviewer, &name, &desc, comment.as_deref())?;
-                }
-                cli::FeedbackAction::Flag { capability, version, reviewer, note } => {
-                    commands::feedback::flag(&mut feedback, &capability, &version, &reviewer, note.as_deref())?;
-                }
-                cli::FeedbackAction::Show { capability } => {
-                    commands::feedback::show(&feedback, capability.as_deref())?;
-                    return Ok(());
-                }
-                cli::FeedbackAction::Stats => {
-                    commands::feedback::stats(&feedback)?;
-                    return Ok(());
-                }
-            }
-            feedback.save(&reviews_path)?;
-        }
-
-        cli::Commands::Testmap { action } => {
-            use crate::types::{FEEDBACK_DIR, TESTMAP_FILE};
-            let testmap_path = std::path::Path::new(FEEDBACK_DIR).join(TESTMAP_FILE);
-            let mut testmap = crate::types::TestMapStore::load_or_new(&testmap_path)
-                .unwrap_or_else(|_| crate::types::TestMapStore {
-                    mappings: vec![],
-                    stats: crate::types::TestMapStats::default(),
-                });
-
-            match action {
-                cli::TestmapAction::Scan { version, diff } => {
-                    let diff_content = if let Some(d) = diff {
-                        std::fs::read_to_string(&d).unwrap_or_default()
-                    } else {
-                        String::new()
-                    };
-                    commands::testmap::scan(&mut testmap, &diff_content, &version)?;
-                }
-                cli::TestmapAction::Add { capability, test_file, test_name, status, framework, source } => {
-                    commands::testmap::add(&mut testmap, &capability, &test_file, &test_name, &status, framework.as_deref(), &source)?;
-                }
-                cli::TestmapAction::Show { capability } => {
-                    commands::testmap::show(&testmap, capability.as_deref())?;
-                    return Ok(());
-                }
-                cli::TestmapAction::Stats => {
-                    commands::testmap::stats(&testmap)?;
-                    return Ok(());
-                }
-                cli::TestmapAction::Verify { capability } => {
-                    commands::testmap::verify(&testmap, &capability)?;
-                    return Ok(());
-                }
-            }
-            testmap.save(&testmap_path)?;
-        },
-
-        cli::Commands::Trace { action } => {
-            let storage = crate::trace::storage::TraceStorage::new(
-                std::path::Path::new(".Paporot"),
+    let wasm_path = if wasm_path.exists() {
+        wasm_path
+    } else {
+        let alt = PathBuf::from("crates/paporot-core/target/wasm32-wasip1/release/paporot-core.wasm");
+        if alt.exists() { alt } else {
+            anyhow::bail!(
+                "paporot-core.wasm not found.\nBuild: cargo build -p paporot-core --target wasm32-wasip1 --release"
             );
-            storage.init()?;
+        }
+    };
 
-            match action {
-                cli::TraceAction::Import { file, adapter } => {
-                    // 检查自动脱敏配置
-                    let auto_redact = if config.trace.auto_redact {
-                        Some(commands::trace::make_redact_config_from_trace_config(
-                            &config.trace,
-                        ))
-                    } else {
-                        None
-                    };
-                    let result = commands::trace::cmd_import(
-                        &storage,
-                        &file,
-                        adapter.as_deref(),
-                        auto_redact.as_ref(),
-                    )?;
-                    println!("Paporot Trace Import");
-                    println!("  source       : {}", result.source_path);
-                    println!(
-                        "  adapter      : {}{}",
-                        result.adapter,
-                        if result.auto_detected {
-                            " (auto-detected)"
-                        } else {
-                            ""
-                        }
-                    );
-                    println!(
-                        "  traces       : {} imported, {} skipped",
-                        result.imported.len(),
-                        result.skipped_count
-                    );
-                    for s in result.skip_reasons.iter().take(5) {
-                        eprintln!("  [skip] {}", s);
-                    }
-                    println!("  ── Imported ──");
-                    for t in &result.imported {
-                        println!(
-                            "  {}  prompt: \"{}\"  tools: {}  tokens: {}",
-                            t.id, t.prompt_preview, t.tool_call_count, t.total_tokens
-                        );
-                    }
-                }
-                cli::TraceAction::List {
-                    session,
-                    tool,
-                    tag,
-                    capability,
-                    from,
-                    to,
-                    limit,
-                    offset,
-                } => {
-                    let filter = crate::trace::types::TraceFilter {
-                        session_id: session,
-                        tool_name: tool,
-                        tag,
-                        capability_id: capability,
-                        from_date: from,
-                        to_date: to,
-                        limit,
-                        offset,
-                        ..Default::default()
-                    };
-                    let results = commands::trace::cmd_list(&storage, filter)?;
-                    if results.is_empty() {
-                        println!("No traces found.");
-                    } else {
-                        for s in &results {
-                            println!(
-                                "{}  session: {}  tools: {}  tokens: {}  {}",
-                                s.id,
-                                s.session_id,
-                                s.tool_names.join(","),
-                                s.total_tokens,
-                                s.started_at
-                            );
-                        }
-                    }
-                }
-                cli::TraceAction::Show { trace_id, format } => {
-                    let fmt = match format.to_lowercase().as_str() {
-                        "json" => commands::trace::ShowFormat::Json,
-                        "summary" => commands::trace::ShowFormat::Summary,
-                        _ => commands::trace::ShowFormat::Full,
-                    };
-                    commands::trace::cmd_show(&storage, &trace_id, fmt)?;
-                }
-                cli::TraceAction::Delete { trace_id } => {
-                    commands::trace::cmd_delete(&storage, &trace_id)?;
-                    println!("Trace {} deleted (soft delete)", trace_id);
-                }
-                cli::TraceAction::Link { trace_id, cap } => {
-                    commands::trace::cmd_link(&storage, &trace_id, &cap)?;
-                    println!("Linked trace {} -> capability {}", trace_id, cap);
-                }
-                cli::TraceAction::Unlink { trace_id, cap } => {
-                    commands::trace::cmd_unlink(&storage, &trace_id, &cap)?;
-                    println!("Unlinked trace {} -> capability {}", trace_id, cap);
-                }
-                cli::TraceAction::Redact { trace_id } => {
-                    let config = RedactConfig::default();
-                    commands::trace::cmd_redact(&storage, &trace_id, &config)?;
-                    println!("Trace {} redacted", trace_id);
-                }
-                cli::TraceAction::Adapter {
-                    action: cli::AdapterAction::List,
-                } => {
-                    let adapters = commands::trace::cmd_adapter_list()?;
-                    for a in &adapters {
-                        println!("  {:<16} v{:<8} {}", a.name, a.version, a.description);
-                    }
-                }
-            }
-        },
-        cli::Commands::Trajectory { action } => {
-            let base_dir = std::path::PathBuf::from(".Paporot");
-            match action {
-                cli::TrajectoryAction::Diff {
-                    capability, trace_a, trace_b, format, output,
-                } => {
-                    let storage = crate::trace::storage::TraceStorage::new(&base_dir);
-                    storage.init()
-                        .map_err(|e| anyhow::anyhow!("Storage init failed: {:?}", e))?;
-                    commands::trajectory::run_diff(
-                        &storage, &base_dir,
-                        capability, trace_a, trace_b, &format, output,
-                    )?;
-                }
-                cli::TrajectoryAction::List => {
-                    commands::trajectory::run_list(&base_dir)?;
-                }
-                cli::TrajectoryAction::Show { diff_id } => {
-                    commands::trajectory::run_show(&base_dir, &diff_id)?;
-                }
-            }
-        },
-        cli::Commands::State { action } => {
-            let base_dir = std::path::PathBuf::from(".Paporot");
-            let storage = crate::trace::storage::TraceStorage::new(&base_dir);
-            storage.init()
-                .map_err(|e| anyhow::anyhow!("Storage init failed: {:?}", e))?;
-            match action {
-                cli::StateAction::Build { trace } => {
-                    commands::state::run_build(&storage, &trace)
-                        .map_err(|e| anyhow::anyhow!("State build: {}", e))?;
-                }
-                cli::StateAction::Show { trace_id, format } => {
-                    commands::state::run_show(&storage, &trace_id, &format, &base_dir)
-                        .map_err(|e| anyhow::anyhow!("State show: {}", e))?;
-                }
-                cli::StateAction::Diff { trace_a, trace_b, format, .. } => {
-                    let (a, b) = if let (Some(ta), Some(tb)) = (trace_a, trace_b) {
-                        (ta, tb)
-                    } else {
-                        anyhow::bail!("Both --trace-a and --trace-b must be provided");
-                    };
-                    commands::state::run_diff(&storage, &a, &b, &format)
-                        .map_err(|e| anyhow::anyhow!("State diff: {}", e))?;
-                }
-                cli::StateAction::Eval { trace } => {
-                    commands::state::run_eval(&storage, &trace)
-                        .map_err(|e| anyhow::anyhow!("State eval: {}", e))?;
-                }
-            }
-        },
-        cli::Commands::TrajectoryVector { action } => {
-            let base_dir = std::path::PathBuf::from(".Paporot");
-            let storage = crate::trace::storage::TraceStorage::new(&base_dir);
-            storage.init()
-                .map_err(|e| anyhow::anyhow!("Storage init failed: {:?}", e))?;
+    // wasmtime
+    let mut wasm_cfg = Config::default();
+    wasm_cfg.wasm_memory64(false);
+    wasm_cfg.wasm_multi_memory(false);
+    let engine = Engine::new(&wasm_cfg)?;
+    let module = Module::from_file(&engine, &wasm_path)?;
 
-            match action {
-                cli::TrajectoryVectorAction::Build { trace, output } => {
-                    commands::trajectory_vector::run_vector_build(&storage, &trace, output)
-                        .map_err(|e| anyhow::anyhow!("Vector build: {}", e))?;
-                }
-                cli::TrajectoryVectorAction::Diff { v1, v2 } => {
-                    commands::trajectory_vector::run_vector_diff(&v1, &v2)
-                        .map_err(|e| anyhow::anyhow!("Vector diff: {}", e))?;
-                }
-                cli::TrajectoryVectorAction::Cluster { traces } => {
-                    commands::trajectory_vector::run_cluster_analyze(&storage, &traces)
-                        .map_err(|e| anyhow::anyhow!("Cluster: {}", e))?;
-                }
-                cli::TrajectoryVectorAction::Anomaly { traces } => {
-                    commands::trajectory_vector::run_anomaly_detect(&storage, &traces)
-                        .map_err(|e| anyhow::anyhow!("Anomaly: {}", e))?;
-                }
-            }
-        },
-        cli::Commands::Coupling { action } => {
-            let base_dir = std::path::PathBuf::from(".Paporot");
-            let storage = crate::trace::storage::TraceStorage::new(&base_dir);
-            storage.init()
-                .map_err(|e| anyhow::anyhow!("Storage init failed: {:?}", e))?;
+    // LLM config
+    let llm_config = load_llm_config(&paporot_dir);
 
-            match action {
-                cli::CouplingAction::Build { pairs, output } => {
-                    let parsed: Vec<(String, String)> = parse_pairs(&pairs)?;
-                    commands::coupling::run_coupling_build(&storage, &parsed, output)
-                        .map_err(|e| anyhow::anyhow!("Coupling build: {}", e))?;
-                }
-                cli::CouplingAction::Analyze { cap, pairs } => {
-                    let parsed: Vec<(String, String)> = parse_pairs(&pairs)?;
-                    commands::coupling::run_coupling_analyze(&storage, &parsed, &cap)
-                        .map_err(|e| anyhow::anyhow!("Coupling analyze: {}", e))?;
-                }
-                cli::CouplingAction::Export { pairs, format } => {
-                    let parsed: Vec<(String, String)> = parse_pairs(&pairs)?;
-                    commands::coupling::run_coupling_graph_export(&storage, &parsed, &format)
-                        .map_err(|e| anyhow::anyhow!("Coupling export: {}", e))?;
-                }
-                cli::CouplingAction::Impact { cap, pairs } => {
-                    let parsed: Vec<(String, String)> = parse_pairs(&pairs)?;
-                    commands::coupling::run_coupling_analyze(&storage, &parsed, &cap)
-                        .map_err(|e| anyhow::anyhow!("Coupling impact: {}", e))?;
-                }
-            }
-        },
+    // WASI context with args and pre-opened dir
+    let mut wasi_builder = WasiCtxBuilder::new();
+    for arg in &args {
+        wasi_builder.arg(arg);
     }
+    wasi_builder
+        .preopened_dir(&paporot_dir, ".", DirPerms::all(), FilePerms::all())?
+        .inherit_stdio();
+
+    let wasi_ctx = wasi_builder.build_p1();
+    let host = SandboxHost::new(wasi_ctx, llm_config, paporot_dir);
+    let mut store = Store::new(&engine, host);
+
+    let mut linker = Linker::new(&engine);
+    wasmtime_wasi::preview1::add_to_linker_sync(&mut linker, |h: &mut SandboxHost| &mut h.wasi)?;
+    register_host_functions(&mut linker)?;
+
+    let instance = linker.instantiate(&mut store, &module)?;
+
+    // Call _start (WASI entry) — proc_exit is a trap, handle it gracefully
+    let start = instance
+        .get_typed_func::<(), ()>(&mut store, "_start")
+        .context("_start not found in paporot-core.wasm")?;
+    let result = start.call(&mut store, ());
+
+    match result {
+        Ok(()) => std::process::exit(0),
+        Err(e) => {
+            // WASI proc_exit is a trap with i32 exit code
+            if let Some(exit_code) = e.downcast_ref::<wasmtime_wasi::I32Exit>() {
+                std::process::exit(exit_code.0);
+            }
+            // Otherwise it's a real error
+            eprintln!("Fatal error: {:?}", e);
+            std::process::exit(1);
+        }
+    }
+}
+
+// ─── SandboxHost ─────────────────────────────────────────────────
+
+struct SandboxHost {
+    wasi: WasiP1Ctx,
+    llm_config: Option<config::LlmConfig>,
+    paporot_dir: PathBuf,
+}
+
+impl SandboxHost {
+    fn new(
+        wasi: WasiP1Ctx,
+        llm_config: Option<config::LlmConfig>,
+        paporot_dir: PathBuf,
+    ) -> Self {
+        Self { wasi, llm_config, paporot_dir }
+    }
+}
+
+fn load_llm_config(dir: &std::path::Path) -> Option<config::LlmConfig> {
+    let path = dir.join("config.toml");
+    path.exists().then(|| ())
+        .and_then(|_| fs::read_to_string(&path).ok())
+        .and_then(|s| toml::from_str::<config::Config>(&s).ok())
+        .map(|c| c.llm)
+}
+
+fn find_paporot_dir() -> Result<PathBuf> {
+    let mut current = std::env::current_dir()?;
+    loop {
+        let candidate = current.join(".Paporot");
+        if candidate.exists() && candidate.is_dir() {
+            return Ok(candidate);
+        }
+        if !current.pop() { break; }
+    }
+    Ok(PathBuf::from(".Paporot"))
+}
+
+// ─── Host Functions ──────────────────────────────────────────────
+
+/// Grow WASM memory if needed, then write data and return (ptr << 32) | len
+fn pack_to_wasm(
+    caller: &mut Caller<'_, SandboxHost>,
+    data: &[u8],
+) -> i64 {
+    let mem = match caller.get_export("memory").and_then(|e| e.into_memory()) {
+        Some(m) => m, None => return 0,
+    };
+    let alloc_at = mem.data_size(&mut *caller); // save BEFORE potential grow
+    let target = alloc_at + data.len();
+    let page_size = 65536;
+    let needed = (target + page_size - 1) / page_size;
+    let cur_pages = (alloc_at + page_size - 1) / page_size;
+    if needed > cur_pages {
+        if mem.grow(&mut *caller, (needed - cur_pages) as u64).is_err() {
+            return 0;
+        }
+    }
+    let ptr = alloc_at as i32;
+    let _ = mem.write(caller, alloc_at, data);
+    ((ptr as i64) << 32) | (data.len() as i64)
+}
+
+fn register_host_functions(linker: &mut Linker<SandboxHost>) -> Result<()> {
+    // host_read_file(path_ptr, path_len) -> (data_ptr << 32) | data_len
+    linker.func_wrap("env", "host_read_file",
+        |mut caller: Caller<'_, SandboxHost>, path_ptr: i32, path_len: i32| -> i64 {
+            let mem = match caller.get_export("memory").and_then(|e| e.into_memory()) {
+                Some(m) => m, None => return 0,
+            };
+            let mut buf = vec![0u8; path_len as usize];
+            if mem.read(&caller, path_ptr as usize, &mut buf).is_err() { return 0; }
+            let path = String::from_utf8_lossy(&buf).into_owned();
+
+            let dir = caller.data().paporot_dir.clone();
+            let dir_canonical = dir.canonicalize().ok();
+            let resolved = dir.join(&path);
+            let data = resolved.canonicalize().ok()
+                .and_then(|c| {
+                    match &dir_canonical {
+                        Some(dc) if c.starts_with(dc) => fs::read(&c).ok(),
+                        _ => None,
+                    }
+                });
+
+            match data {
+                Some(bytes) => pack_to_wasm(&mut caller, &bytes),
+                None => 0,
+            }
+        },
+    )?;
+
+    // host_write_file(path_ptr, path_len, data_ptr, data_len) -> errno
+    linker.func_wrap("env", "host_write_file",
+        |mut caller: Caller<'_, SandboxHost>, path_ptr: i32, path_len: i32,
+         data_ptr: i32, data_len: i32| -> i32 {
+            let mem = match caller.get_export("memory").and_then(|e| e.into_memory()) {
+                Some(m) => m, None => return 1,
+            };
+            let mut p = vec![0u8; path_len as usize];
+            let mut d = vec![0u8; data_len as usize];
+            if mem.read(&caller, path_ptr as usize, &mut p).is_err() { return 1; }
+            if mem.read(&caller, data_ptr as usize, &mut d).is_err() { return 1; }
+            let path = String::from_utf8_lossy(&p).into_owned();
+
+            let dir = &caller.data().paporot_dir;
+            let resolved = dir.join(&path);
+            if let Some(parent) = resolved.parent() { let _ = fs::create_dir_all(parent); }
+            match fs::write(&resolved, &d) {
+                Ok(()) => 0,
+                Err(e) => e.raw_os_error().unwrap_or(1),
+            }
+        },
+    )?;
+
+    // host_llm_call(prompt_ptr, prompt_len, schema_ptr, schema_len) -> (resp_ptr << 32) | resp_len
+    linker.func_wrap("env", "host_llm_call",
+        |mut caller: Caller<'_, SandboxHost>,
+         prompt_ptr: i32, prompt_len: i32,
+         schema_ptr: i32, schema_len: i32| -> i64 {
+            // Phase 1: read prompt and schema from WASM memory
+            let (prompt, schema) = {
+                let mem = match caller.get_export("memory").and_then(|e| e.into_memory()) {
+                    Some(m) => m, None => return 0,
+                };
+                let mut p = vec![0u8; prompt_len as usize];
+                let mut s = vec![0u8; schema_len as usize];
+                if mem.read(&caller, prompt_ptr as usize, &mut p).is_err() { return 0; }
+                if mem.read(&caller, schema_ptr as usize, &mut s).is_err() { return 0; }
+                (
+                    String::from_utf8_lossy(&p).into_owned(),
+                    String::from_utf8_lossy(&s).into_owned(),
+                )
+            };
+            // mem dropped here
+
+            // Phase 2: call LLM (no WASM memory borrow held)
+            let config = caller.data().llm_config.clone();
+            let result = match config {
+                Some(ref cfg) => call_deepseek_api(cfg, &prompt, &schema),
+                None => {
+                    eprintln!("[sandbox] No LLM config — returning stub");
+                    Ok(r#"{"status":"ok","note":"LLM unavailable"}"#.to_string())
+                }
+            };
+
+            // Phase 3: write result back to WASM memory
+            match result {
+                Ok(response) => pack_to_wasm(&mut caller, response.as_bytes()),
+                Err(e) => {
+                    eprintln!("[sandbox] LLM error: {}", e);
+                    0
+                }
+            }
+        },
+    )?;
 
     Ok(())
 }
 
-/// Parse "trace_id:cap_id" pairs from CLI args.
-fn parse_pairs(pairs: &[String]) -> anyhow::Result<Vec<(String, String)>> {
-    let mut result = Vec::new();
-    for p in pairs {
-        let parts: Vec<&str> = p.splitn(2, ':').collect();
-        if parts.len() != 2 {
-            anyhow::bail!("Invalid pair format '{}'. Expected trace_id:cap_id", p);
-        }
-        result.push((parts[0].to_string(), parts[1].to_string()));
+/// 同步调用 DeepSeek API（使用 reqwest blocking）
+fn call_deepseek_api(config: &config::LlmConfig, prompt: &str, schema: &str) -> Result<String, String> {
+    let api_key = if config.api_key.is_empty() {
+        std::env::var("PAPOROT_API_KEY").unwrap_or_default()
+    } else {
+        config.api_key.clone()
+    };
+
+    if api_key.is_empty() {
+        return Err("No API key configured. Set PAPOROT_API_KEY or add [llm] to .Paporot/config.toml".into());
     }
-    Ok(result)
+
+    let endpoint = if config.endpoint.is_empty() {
+        "https://api.deepseek.com/v1/chat/completions"
+    } else {
+        &config.endpoint
+    };
+
+    let full_prompt = format!(
+        "{}\n\nRespond ONLY with valid JSON matching this schema (no markdown, no explanation):\n{}",
+        prompt, schema
+    );
+
+    let body = serde_json::json!({
+        "model": config.model,
+        "messages": [
+            {"role": "user", "content": full_prompt}
+        ],
+        "temperature": config.temperature,
+        "max_tokens": config.max_tokens,
+    });
+
+    let client = reqwest::blocking::Client::new();
+    let resp = client
+        .post(endpoint)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Content-Type", "application/json")
+        .json(&body)
+        .send()
+        .map_err(|e| format!("HTTP error: {}", e))?;
+
+    let json: serde_json::Value = resp
+        .json()
+        .map_err(|e| format!("Parse error: {}", e))?;
+
+    let content = json["choices"][0]["message"]["content"]
+        .as_str()
+        .ok_or("Missing content in LLM response")?;
+
+    // Strip markdown code fences if present
+    let cleaned = content
+        .trim()
+        .trim_start_matches("```json")
+        .trim_start_matches("```")
+        .trim_end_matches("```")
+        .trim();
+
+    Ok(cleaned.to_string())
 }

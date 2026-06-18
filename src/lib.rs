@@ -12,6 +12,8 @@ pub mod evidence;
 pub mod graph;
 pub mod llm;
 pub mod prompts;
+pub mod report;
+pub mod skills;
 pub mod storage;
 pub mod trace;
 pub mod trajectory;

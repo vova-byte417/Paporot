@@ -130,6 +130,27 @@ pub enum Commands {
         #[command(subcommand)]
         action: CouplingAction,
     },
+
+    /// Skill 管理
+    Skill {
+        #[command(subcommand)]
+        action: SkillAction,
+    },
+
+    /// 运行完整 Skill 分析管线（DAG 编排）
+    Analyze {
+        /// 额外输入（JSON 格式的 key=value 对）
+        #[arg(short, long)]
+        input: Option<String>,
+
+        /// PRD 文件路径（注入为覆盖率参考）
+        #[arg(short, long)]
+        prd: Option<String>,
+
+        /// LLM API Key（可选，优先级高于配置文件）
+        #[arg(long)]
+        api_key: Option<String>,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -543,4 +564,10 @@ pub enum StateAction {
         #[arg(long)]
         trace: String,
     },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum SkillAction {
+    /// 列出已安装的 Skill
+    List,
 }

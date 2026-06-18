@@ -1,5 +1,22 @@
+# Build artifacts
 /target
+crates/*/target/
+
+# Environment & secrets
 .env
+.Paporot/config.toml
+
+# Generated output
+.Paporot/reports/
+.Paporot/snapshots/
+.Paporot/bin/
+.Paporot/work/
+
+# External
 /ppt
-/docs
-/.Paporot
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~

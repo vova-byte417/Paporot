@@ -1,5 +1,6 @@
 //! Paporot 命令模块
 
+pub mod analyze;
 pub mod snapshot;
 pub mod diff;
 pub mod coverage;

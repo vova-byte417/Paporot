@@ -1,0 +1,53 @@
+[skill]
+name = "behavior-boundary-discovery"
+version = "0.1.0"
+requires_paporot = ">=0.2.0"
+description = "发现影响可观测行为的组件边界，区分行为核心与支撑模块"
+timeout_secs = 30
+
+[inputs]
+required = ["ast", "git_diff", "call_graph"]
+
+[outputs]
+schema = "behavior_boundary_discovery_output"
+
+[llm_calls]
+max_calls = 2
+preferred_model = "deepseek-pro"
+
+[dependencies]
+uses_outputs_from = ["runtime-flow-analysis"]
+
+[quality]
+checks = [
+    "classification_is_evidence_based",
+    "behavioral_modules_have_user_visible_output",
+    "non_behavioral_modules_are_internal_only"
+]
+
+# ── Procedure ──
+# Step 1: Identify user-visible outputs
+#   API responses, file output, database state changes, event emissions
+# Step 2: Trace backward from each output
+#   output ← service ← planner ← model (reverse call graph traversal)
+# Step 3: Mark modules
+#   Behavioral: any module on a path from output to first non-user-visible boundary
+#   Non-behavioral: logger, metrics, tracing, cache internals, formatting utilities
+# Step 4: Cross reference with git_diff
+#   Identify which changed functions cross the behavioral boundary
+
+# ── Output Schema ──
+# {
+#   "behavioral_modules": ["string"],
+#   "non_behavioral_modules": ["string"],
+#   "behavioral_functions": [
+#     {"name": "string", "module": "string", "output_type": "api_response" | "file_write" | "db_mutation" | "event"}
+#   ],
+#   "non_behavioral_functions": [
+#     {"name": "string", "module": "string", "reason": "logging" | "metrics" | "cache" | "formatting"}
+#   ],
+#   "changed_boundaries": [
+#     {"function": "string", "change_type": "added" | "modified" | "removed", "user_visible": "boolean", "risk": "low" | "medium" | "high"}
+#   ],
+#   "boundary_summary": "string (human-readable summary of behavior changes)"
+# }
