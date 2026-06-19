@@ -464,13 +464,36 @@ fn call_deepseek_api(config: &config::LlmConfig, prompt: &str, schema: &str) -> 
             "Missing content in LLM response".to_string()
         })?;
 
-    // Strip markdown code fences if present
-    let cleaned = content
-        .trim()
-        .trim_start_matches("```json")
-        .trim_start_matches("```")
-        .trim_end_matches("```")
-        .trim();
+    // Strip markdown code fences and extract JSON
+    let cleaned = extract_json_from_text(content);
 
-    Ok(cleaned.to_string())
+    // If extraction found valid JSON, return cleaned version
+    if serde_json::from_str::<serde_json::Value>(&cleaned).is_ok() {
+        return Ok(cleaned);
+    }
+
+    // Try harder: find JSON object/array boundaries
+    if let Some(start) = cleaned.find('{').or_else(|| cleaned.find('[')) {
+        let end_char = if cleaned.as_bytes()[start] == b'{' { '}' } else { ']' };
+        if let Some(end) = cleaned.rfind(end_char) {
+            let extracted = cleaned[start..=end].to_string();
+            if serde_json::from_str::<serde_json::Value>(&extracted).is_ok() {
+                return Ok(extracted);
+            }
+        }
+    }
+
+    // Last resort: return the cleaned content as-is, let caller handle
+    Ok(cleaned)
+}
+
+/// Extract JSON from text wrapped in markdown fences or other prose
+fn extract_json_from_text(text: &str) -> String {
+    let text = text.trim();
+    // Remove markdown code fences: ```json or ``` at start, ``` at end
+    let text = text.trim_start_matches("```json");
+    let text = text.trim_start_matches("```");
+    let text = text.trim();
+    let text = text.trim_end_matches("```");
+    text.trim().to_string()
 }
