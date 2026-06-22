@@ -1,0 +1,15 @@
+# JSON Artifact Contract
+# MVP: structural correctness checks only
+artifact_type: json
+version: "1.0"
+severity: error
+
+rules:
+  syntax:
+    valid_json: true
+
+  structure:
+    required_fields:
+      - project_name
+      - summary
+    no_empty_arrays: true

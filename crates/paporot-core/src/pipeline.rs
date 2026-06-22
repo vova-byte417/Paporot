@@ -129,6 +129,7 @@ fn scan_skills() -> Result<Vec<(String, SkillToml)>, String> {
         "runtime-flow-analysis",
         "behavior-boundary-discovery",
         "architecture-doc-generator",
+        "verification-runner",
     ];
 
     let mut skills = Vec::new();
@@ -268,7 +269,8 @@ fn read_source_context() -> Option<String> {
             let full = format!("work/sources/{}", path);
             if let Some(content) = host::read_file(&full) {
                 let truncated = if content.len() > 4000 {
-                    format!("{}... (truncated, {} total bytes)", &content[..4000], content.len())
+                    let safe_cut: String = content.chars().take(4000).collect();
+                    format!("{}... (truncated, {} total bytes)", safe_cut, content.len())
                 } else {
                     content
                 };
@@ -287,6 +289,11 @@ fn execute_single_skill(
     upstream: &HashMap<String, String>,
     source_context: &Option<String>,
 ) -> Result<Option<String>, String> {
+    // ── Procedural skills (no LLM) ───────────────────────────
+    if skill_name == "verification-runner" {
+        return run_verification_runner(upstream);
+    }
+
     let description = skill_toml
         .map(|t| t.skill.description.as_str())
         .unwrap_or(skill_name);
@@ -466,6 +473,118 @@ fn build_skill_stub(skill_name: &str, upstream: &HashMap<String, String>) -> Str
         }
         _ => r#"{"status":"LLM unavailable"}"#.to_string(),
     }
+}
+
+// ─── Verification Runner (Procedural, no LLM) ──────────────────
+
+fn run_verification_runner(upstream: &HashMap<String, String>) -> Result<Option<String>, String> {
+    use crate::host;
+
+    let mut results: Vec<serde_json::Value> = Vec::new();
+    let mut replay_count: u32 = 0;
+    let mut overall_pass = true;
+
+    // Map upstream skill names to artifact types
+    for (skill_name, output) in upstream {
+        // Skip skills that don't produce artifacts to verify
+        if output.is_empty() || output == "{}" {
+            continue;
+        }
+
+        let artifact_type = match skill_name.as_str() {
+            "architecture-doc-generator" => "json",
+            "dependency-analysis" => "json",
+            "runtime-flow-analysis" => "json",
+            "module-discovery" => "json",
+            "behavior-boundary-discovery" => "json",
+            "repository-understanding" => "json",
+            _ => continue,
+        };
+
+        // 1. Contract Verification
+        let verify_result_json = host::verify_contract(artifact_type, output)
+            .unwrap_or_else(|| {
+                format!(r#"{{"status":"ERROR","error":"host_verify_contract failed for {}"}}"#, skill_name)
+            });
+
+        let verify_result: serde_json::Value = serde_json::from_str(&verify_result_json)
+            .unwrap_or_else(|_| {
+                serde_json::json!({
+                    "artifact_id": skill_name,
+                    "artifact_type": artifact_type,
+                    "status": "ERROR",
+                    "rule_results": [],
+                    "suggestions": ["Failed to parse verification result"]
+                })
+            });
+
+        let status = verify_result["status"].as_str().unwrap_or("ERROR");
+
+        // 2. Evidence Collection
+        let prev_outputs: serde_json::Value = upstream.iter()
+            .filter(|(n, _)| n.as_str() != skill_name)
+            .map(|(n, v)| (n.clone(), serde_json::Value::String(v.clone())))
+            .collect::<serde_json::Map<_, _>>()
+            .into();
+
+        host::capture_evidence(
+            skill_name,
+            &prev_outputs.to_string(),
+            output,
+            "{}", // intermediate not available in MVP
+        );
+
+        // 3. FAIL → Save Replay Case
+        if status != "PASS" {
+            overall_pass = false;
+
+            let case = serde_json::json!({
+                "case_id": format!("replay-{}", chrono::Utc::now().timestamp_millis()),
+                "created_at": chrono::Utc::now().to_rfc3339(),
+                "artifact_type": artifact_type,
+                "artifact_id": skill_name,
+                "upstream_input": prev_outputs,
+                "failed_artifact": output,
+                "contract_result": verify_result,
+                "suggestions": verify_result["suggestions"].as_array()
+                    .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect::<Vec<_>>())
+                    .unwrap_or_default(),
+            });
+
+            host::save_replay_case(&case.to_string());
+            replay_count += 1;
+        }
+
+        results.push(serde_json::json!({
+            "artifact_id": skill_name,
+            "artifact_type": artifact_type,
+            "status": status,
+            "rule_results": verify_result["rule_results"],
+            "suggestions": verify_result["suggestions"],
+        }));
+    }
+
+    let overall_status = if overall_pass { "PASS" } else { "FAIL" };
+    let output = serde_json::json!({
+        "overall_status": overall_status,
+        "results": results,
+        "replay_cases_saved": replay_count,
+    });
+
+    let output_str = serde_json::to_string_pretty(&output)
+        .map_err(|e| e.to_string())?;
+
+    if !overall_pass {
+        // Write failure details for debugging
+        let _ = host::write_file("work/verification_failure.json", &output_str);
+        return Err(format!(
+            "Verification FAILED: {}/{} artifacts failed. See work/verification_failure.json for details.",
+            results.iter().filter(|r| r["status"] != "PASS").count(),
+            results.len(),
+        ));
+    }
+
+    Ok(Some(output_str))
 }
 
 // ─── 报告生成 ────────────────────────────────────────────────────
