@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600">
+  <defs>
+    <marker id="arw" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><path d="M0,0 L10,3.5 L0,7 Z" fill="#2563eb"/></marker>
+    <marker id="arwGrn" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><path d="M0,0 L10,3.5 L0,7 Z" fill="#059669"/></marker>
+    <filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/></filter>
+  </defs>
+  <rect width="960" height="600" fill="#f0e6d2"/>
+  <text x="480" y="48" font-family="IBM Plex Mono,monospace" font-size="22" font-weight="700" fill="#1f1a14" text-anchor="middle">Paporot Skill DAG Pipeline</text>
+  <text x="480" y="72" font-family="IBM Plex Mono,monospace" font-size="13" fill="#78716c" text-anchor="middle">Kahn Topological Sort · 6 Skills · Fully Automated</text>
+  <!-- Host Layer -->
+  <rect x="40" y="100" width="880" height="120" rx="10" fill="#fafaf9" stroke="#d6d3d1" stroke-width="1.5"/>
+  <text x="60" y="128" font-family="IBM Plex Mono,monospace" font-size="15" font-weight="700" fill="#2563eb">Native Host (x86_64)</text>
+  <rect x="60" y="142" width="180" height="60" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="150" y="168" font-family="sans-serif" font-size="13" font-weight="600" fill="#1e40af" text-anchor="middle">CLI (clap)</text>
+  <text x="150" y="188" font-family="monospace" font-size="10" fill="#6b7280" text-anchor="middle">16 subcommands</text>
+  <rect x="300" y="142" width="180" height="60" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="390" y="168" font-family="sans-serif" font-size="13" font-weight="600" fill="#1e40af" text-anchor="middle">SandboxHost</text>
+  <text x="390" y="188" font-family="monospace" font-size="10" fill="#6b7280" text-anchor="middle">wasmtime + WASI</text>
+  <line x1="242" y1="172" x2="296" y2="172" stroke="#2563eb" stroke-width="2" marker-end="url(#arw)"/>
+  <!-- Bridge -->
+  <rect x="120" y="250" width="720" height="36" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="1.5" stroke-dasharray="6 3"/>
+  <text x="480" y="274" font-family="monospace" font-size="13" font-weight="700" fill="#047857" text-anchor="middle">3 Host Functions: host_read_file · host_write_file · host_llm_call</text>
+  <!-- WASM Sandbox -->
+  <rect x="40" y="316" width="880" height="200" rx="10" fill="#f0fdf4" stroke="#059669" stroke-width="2" stroke-dasharray="8 4"/>
+  <text x="60" y="344" font-family="IBM Plex Mono,monospace" font-size="15" font-weight="700" fill="#059669">WASM Sandbox (paporot-core.wasm)</text>
+  <!-- L1 -->
+  <rect x="55" y="368" width="122" height="58" rx="6" fill="#a7f3d0" stroke="#059669" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="116" y="390" font-family="monospace" font-size="12" font-weight="700" fill="#047857" text-anchor="middle">L1 仓库理解</text>
+  <text x="116" y="410" font-family="monospace" font-size="9" fill="#374151" text-anchor="middle">repository-understanding</text>
+  <line x1="179" y1="397" x2="209" y2="397" stroke="#059669" stroke-width="2" marker-end="url(#arwGrn)"/>
+  <!-- L2 -->
+  <rect x="213" y="368" width="122" height="58" rx="6" fill="#a7f3d0" stroke="#059669" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="274" y="390" font-family="monospace" font-size="12" font-weight="700" fill="#047857" text-anchor="middle">L2 模块发现</text>
+  <text x="274" y="410" font-family="monospace" font-size="9" fill="#374151" text-anchor="middle">module-discovery</text>
+  <line x1="337" y1="397" x2="367" y2="397" stroke="#059669" stroke-width="2" marker-end="url(#arwGrn)"/>
+  <!-- L3 -->
+  <rect x="371" y="368" width="122" height="58" rx="6" fill="#a7f3d0" stroke="#059669" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="432" y="390" font-family="monospace" font-size="12" font-weight="700" fill="#047857" text-anchor="middle">L3 依赖分析</text>
+  <text x="432" y="410" font-family="monospace" font-size="9" fill="#374151" text-anchor="middle">dependency-analysis</text>
+  <line x1="495" y1="397" x2="525" y2="397" stroke="#059669" stroke-width="2" marker-end="url(#arwGrn)"/>
+  <!-- L4 -->
+  <rect x="529" y="368" width="122" height="58" rx="6" fill="#a7f3d0" stroke="#059669" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="590" y="390" font-family="monospace" font-size="12" font-weight="700" fill="#047857" text-anchor="middle">L4 执行流</text>
+  <text x="590" y="410" font-family="monospace" font-size="9" fill="#374151" text-anchor="middle">runtime-flow-analysis</text>
+  <line x1="653" y1="397" x2="683" y2="397" stroke="#059669" stroke-width="2" marker-end="url(#arwGrn)"/>
+  <!-- L5 -->
+  <rect x="687" y="368" width="122" height="58" rx="6" fill="#a7f3d0" stroke="#059669" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="748" y="390" font-family="monospace" font-size="12" font-weight="700" fill="#047857" text-anchor="middle">L5 行为边界</text>
+  <text x="748" y="410" font-family="monospace" font-size="9" fill="#374151" text-anchor="middle">behavior-boundary</text>
+  <line x1="811" y1="397" x2="841" y2="397" stroke="#7c3aed" stroke-width="2" marker-end="url(#arw)"/>
+  <!-- L6 -->
+  <rect x="55" y="448" width="870" height="52" rx="8" fill="#ddd6fe" stroke="#7c3aed" stroke-width="2.5" filter="url(#sh)"/>
+  <text x="490" y="468" font-family="monospace" font-size="14" font-weight="800" fill="#6d28d9" text-anchor="middle">★ L6 architecture-doc-generator (总指挥 Skill)</text>
+  <text x="490" y="488" font-family="monospace" font-size="10" fill="#6d28d9" text-anchor="middle">消费 L1-L5 全部产出 · 聚合分析维度 · 生成 JSON / MD / HTML</text>
+  <!-- Output -->
+  <rect x="120" y="530" width="220" height="48" rx="8" fill="#ddd6fe" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="230" y="550" font-family="monospace" font-size="13" font-weight="700" fill="#6d28d9" text-anchor="middle">report.json</text>
+  <text x="230" y="568" font-family="monospace" font-size="9" fill="#6b7280" text-anchor="middle">CI/CD Integration</text>
+  <rect x="370" y="530" width="220" height="48" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="480" y="550" font-family="monospace" font-size="13" font-weight="700" fill="#1e40af" text-anchor="middle">report.md</text>
+  <text x="480" y="568" font-family="monospace" font-size="9" fill="#6b7280" text-anchor="middle">Developer Review</text>
+  <rect x="620" y="530" width="220" height="48" rx="8" fill="#a7f3d0" stroke="#059669" stroke-width="1.5"/>
+  <text x="730" y="550" font-family="monospace" font-size="13" font-weight="700" fill="#047857" text-anchor="middle">dashboard.html</text>
+  <text x="730" y="568" font-family="monospace" font-size="9" fill="#6b7280" text-anchor="middle">Team Dashboard</text>
+</svg>

@@ -1,0 +1,21 @@
+id: CAP_006
+name: "Add HTTP route handler function"
+category: capability
+description: "新增 HTTP 路由处理函数 handle_get_users"
+
+input:
+  type: files
+  before: "fixtures/before/empty_http.rs"
+  after: "fixtures/after/add_http_handler.rs"
+
+expected:
+  capabilities:
+    - name: "handle_get_users"
+      status: new
+      categories: []
+
+metadata:
+  difficulty: easy
+  tags: [http, capability]
+  human_verified: true
+  auto_generated: false

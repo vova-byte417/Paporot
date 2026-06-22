@@ -1,0 +1,27 @@
+id: REG_003
+name: "Regression: security function add (no degrade)"
+category: regression
+description: "验证安全函数新增不应触发退化"
+
+input:
+  type: files
+  before: "fixtures/before/empty_security.rs"
+  after: "fixtures/after/add_security_fns.rs"
+
+expected:
+  capabilities:
+    - name: "hash_password"
+      status: new
+    - name: "generate_token"
+      status: new
+    - name: "verify_token"
+      status: new
+  regression:
+    degraded: false
+    verdict: "Pass"
+
+metadata:
+  difficulty: easy
+  tags: [regression, security]
+  human_verified: true
+  auto_generated: false

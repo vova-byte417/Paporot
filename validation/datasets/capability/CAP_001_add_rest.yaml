@@ -1,0 +1,30 @@
+id: CAP_001
+name: "Add health endpoint and auth module"
+category: capability
+description: "从无到有添加 /health 接口和登录认证模块"
+
+input:
+  type: files
+  before: "fixtures/before/simple_no_api.rs"
+  after: "fixtures/after/add_health_and_auth.rs"
+
+expected:
+  capabilities:
+    - name: "health_check"
+      status: new
+      categories: []
+    - name: "login"
+      status: new
+      categories: []
+    - name: "Token"
+      status: new
+      categories: []
+    - name: "AuthError"
+      status: new
+      categories: []
+
+metadata:
+  difficulty: easy
+  tags: [api, auth, capability]
+  human_verified: true
+  auto_generated: false

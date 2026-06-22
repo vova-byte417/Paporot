@@ -14,7 +14,7 @@ schema = "repository_understanding_output"
 
 [llm_calls]
 max_calls = 3
-preferred_model = "deepseek-pro"
+preferred_model = "deepseek-v4-pro"
 
 [dependencies]
 

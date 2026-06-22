@@ -1,0 +1,29 @@
+id: REG_001
+name: "Regression: function count explosion"
+category: regression
+description: "验证大量新增函数是否可能触发退化警报"
+
+input:
+  type: files
+  before: "fixtures/before/v1_simple.rs"
+  after: "fixtures/after/v2_bloated.rs"
+
+expected:
+  capabilities:
+    - name: "extra_handler_1"
+      status: new
+    - name: "extra_handler_2"
+      status: new
+    - name: "extra_handler_3"
+      status: new
+    - name: "extra_handler_4"
+      status: new
+  regression:
+    degraded: true
+    verdict: "Watch"
+
+metadata:
+  difficulty: medium
+  tags: [regression, bloat]
+  human_verified: true
+  auto_generated: false

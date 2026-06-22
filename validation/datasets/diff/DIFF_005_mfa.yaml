@@ -1,0 +1,24 @@
+id: DIFF_005
+name: "Diff: MFA function addition"
+category: diff
+description: "验证 login 基础上新增 login_with_mfa 的 diff"
+
+input:
+  type: files
+  before: "fixtures/after/add_health_and_auth.rs"
+  after: "fixtures/after/add_mfa.rs"
+
+expected:
+  capabilities:
+    - name: "login_with_mfa"
+      status: new
+  diff:
+    added_count: 1
+    removed_count: 0
+    modified_count: 0
+
+metadata:
+  difficulty: easy
+  tags: [diff, modification]
+  human_verified: true
+  auto_generated: false

@@ -1,0 +1,29 @@
+id: REG_002
+name: "Regression: verify no degradation on single add"
+category: regression
+description: "验证单一新增不会触发退化警报"
+
+input:
+  type: files
+  before: "fixtures/before/v1_simple.rs"
+  after: "fixtures/after/add_health_and_auth.rs"
+
+expected:
+  capabilities:
+    - name: "health_check"
+      status: new
+    - name: "login"
+      status: new
+    - name: "Token"
+      status: new
+    - name: "AuthError"
+      status: new
+  regression:
+    degraded: false
+    verdict: "Pass"
+
+metadata:
+  difficulty: easy
+  tags: [regression, false_positive_check]
+  human_verified: true
+  auto_generated: false

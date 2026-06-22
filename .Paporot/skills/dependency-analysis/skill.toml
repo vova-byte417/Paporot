@@ -13,7 +13,7 @@ schema = "dependency_analysis_output"
 
 [llm_calls]
 max_calls = 1
-preferred_model = "deepseek-pro"
+preferred_model = "deepseek-v4-pro"
 
 [dependencies]
 uses_outputs_from = ["module-discovery"]

@@ -1,0 +1,30 @@
+id: DIFF_004
+name: "Diff: user struct and enum addition"
+category: diff
+description: "验证 struct + enum + function 混合新增的 diff"
+
+input:
+  type: files
+  before: "fixtures/before/empty_types.rs"
+  after: "fixtures/after/add_user_struct.rs"
+
+expected:
+  capabilities:
+    - name: "User"
+      status: new
+    - name: "Role"
+      status: new
+    - name: "create_user"
+      status: new
+    - name: "promote_to_admin"
+      status: new
+  diff:
+    added_count: 4
+    removed_count: 0
+    modified_count: 0
+
+metadata:
+  difficulty: medium
+  tags: [diff, struct]
+  human_verified: true
+  auto_generated: false

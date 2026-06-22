@@ -13,7 +13,7 @@ schema = "architecture_doc_output"
 
 [llm_calls]
 max_calls = 1
-preferred_model = "deepseek-pro"
+preferred_model = "deepseek-v4-pro"
 
 [dependencies]
 uses_outputs_from = ["repository-understanding", "module-discovery", "dependency-analysis", "runtime-flow-analysis", "behavior-boundary-discovery"]

@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paporot · AI 代码行为审计 · 演讲稿</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@300;400;500;600&family=Noto+Serif+SC:wght@300;400;500;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ============ 主题色(🌙 沙丘) ============ */
+    --ink:#1f1a14;
+    --ink-rgb:31,26,20;
+    --paper:#f0e6d2;
+    --paper-rgb:240,230,210;
+    --paper-tint:#e3d7bf;
+    --ink-tint:#2d2620;
+
+    /* ============ 字体(跨主题固定) ============ */
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --serif-en:"Playfair Display","Source Serif 4",Georgia,serif;
+    --serif-body-en:"Source Serif 4",Georgia,serif;
+    --serif-zh:"Noto Serif SC",source-han-serif-sc,serif;
+    --sans-zh:"Noto Sans SC",source-han-sans-sc,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);color:var(--paper);font-family:var(--sans-zh);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+
+  /* ============ WebGL 双背景 ============ */
+  canvas.bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;display:block;transition:opacity 1.2s ease}
+  canvas#bg-light{opacity:0}
+  canvas#bg-dark{opacity:1}
+  body.light-bg canvas#bg-light{opacity:1}
+  body.light-bg canvas#bg-dark{opacity:0}
+  body.low-power canvas.bg{display:none!important}
+
+  /* ============ Deck 容器 + 翻页 ============ */
+  /* width: NSLIDES * 100vw，会在 JS 里动态矫正 */
+  #deck{position:fixed;inset:0;width:10000vw;height:100vh;display:flex;flex-wrap:nowrap;transition:transform .9s cubic-bezier(.77,0,.175,1);z-index:10;will-change:transform}
+  .slide{width:100vw;height:100vh;flex:0 0 100vw;position:relative;padding:6vh 6vw 10vh 6vw;display:flex;flex-direction:column;overflow:hidden}
+  .slide.light{color:var(--ink);background:var(--paper)}
+  .slide.dark{color:var(--paper);background:var(--ink)}
+
+  /* 默认页：遮罩较厚，保证文字可读 */
+  .slide::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;transition:background .7s ease}
+  .slide.light::before{background:rgba(var(--paper-rgb),.78);backdrop-filter:blur(3px)}
+  .slide.dark::before{background:rgba(var(--ink-rgb),.78);backdrop-filter:blur(3px)}
+  /* Hero 页：遮罩大幅降低，让 WebGL 背景明显透出 */
+  .slide.hero.light::before{background:rgba(var(--paper-rgb),.16);backdrop-filter:none}
+  .slide.hero.dark::before{background:rgba(var(--ink-rgb),.12);backdrop-filter:none}
+  /* Hero 页顶底微弱渐隐，保证 chrome/foot 区域可读 */
+  .slide.hero::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none}
+  .slide.hero.light::after{background:linear-gradient(180deg,rgba(var(--paper-rgb),.28) 0%,rgba(var(--paper-rgb),0) 14%,rgba(var(--paper-rgb),0) 86%,rgba(var(--paper-rgb),.28) 100%)}
+  .slide.hero.dark::after{background:linear-gradient(180deg,rgba(var(--ink-rgb),.32) 0%,rgba(var(--ink-rgb),0) 14%,rgba(var(--ink-rgb),0) 86%,rgba(var(--ink-rgb),.32) 100%)}
+
+  /* ============ Magazine chrome：顶部 meta + 底部 foot ============ */
+  .chrome{display:flex;justify-content:space-between;align-items:flex-start;font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;opacity:.7}
+  .chrome .left,.chrome .right{display:flex;gap:2.4em;align-items:center}
+  .chrome .sep{width:40px;height:1px;background:currentColor;opacity:.4}
+  .foot{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.55}
+  .foot .title{font-family:var(--serif-zh);font-weight:400;letter-spacing:.05em;text-transform:none;opacity:.75;font-size:13px}
+
+  .tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;padding:6px 14px;border:1px solid currentColor;opacity:.85}
+  .rule{width:100%;height:1px;background:currentColor;opacity:.25;margin:3vh 0}
+  .rule.v{width:1px;height:100%;margin:0}
+
+  /* ============ 字体规则 ============
+     · 衬线（Noto Serif SC / Playfair）：大标题、重点金句、数字
+     · 非衬线（Noto Sans SC）：正文描述、body、补充说明
+     · 等宽（IBM Plex Mono）：kicker、meta 小标签、foot 右侧
+  */
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.3em;text-transform:uppercase;opacity:.6;margin-bottom:2.6vh}
+  .display{font-family:var(--serif-en);font-weight:700;font-size:11vw;line-height:.92;letter-spacing:-.025em}
+  .display-zh{font-family:var(--serif-zh);font-weight:700;font-size:7.8vw;line-height:1.04;letter-spacing:-.005em}
+  .h1-zh{font-family:var(--serif-zh);font-weight:700;font-size:4.6vw;line-height:1.12;letter-spacing:-.005em}
+  .h2-zh{font-family:var(--serif-zh);font-weight:600;font-size:3.2vw;line-height:1.2;letter-spacing:0}
+  .h3-zh{font-family:var(--serif-zh);font-weight:500;font-size:1.9vw;line-height:1.35}
+  .body-zh{font-family:var(--sans-zh);font-weight:400;font-size:max(15px,1.22vw);line-height:1.75;opacity:.82;letter-spacing:.01em}
+  .body-serif{font-family:var(--serif-zh);font-weight:400;font-size:max(15px,1.3vw);line-height:1.65;opacity:.88}
+  .lead{font-family:var(--serif-zh);font-weight:400;font-size:1.9vw;line-height:1.4;opacity:.85}
+  .meta{font-family:var(--mono);font-size:max(11px,.88vw);letter-spacing:.16em;text-transform:uppercase;opacity:.6}
+  .big-num{font-family:var(--serif-en);font-weight:800;font-size:10vw;line-height:.85;letter-spacing:-.03em;font-feature-settings:"tnum"}
+  .mid-num{font-family:var(--serif-en);font-weight:700;font-size:5.5vw;line-height:.88;letter-spacing:-.02em;font-feature-settings:"tnum"}
+  .ghost{font-family:var(--serif-en);font-weight:900;font-size:34vw;line-height:.8;opacity:.06;letter-spacing:-.04em;position:absolute;font-feature-settings:"tnum"}
+  em{font-style:italic;font-family:var(--serif-en)}
+  .en{font-family:var(--serif-en);font-style:italic;font-weight:500}
+
+  /* ============ 布局工具 ============ */
+  .col{display:flex;flex-direction:column;gap:2.4vh}
+  .row{display:flex;align-items:center;gap:3vw}
+  .grid-6{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:4vw 6vw;flex:1;align-content:center;padding:2vh 0}
+  .grid-9{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:3vh 4vw;flex:1;align-content:center}
+  .grid-4{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);gap:4vh 6vw;flex:1;align-content:center}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:4vw;flex:1;align-content:center}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:4vw;flex:1;align-items:center}
+  .split-55{display:grid;grid-template-columns:55fr 45fr;gap:5vw;flex:1;align-items:stretch}
+  .fill{flex:1}
+  .center{align-items:center;justify-content:center;text-align:center}
+  .bottom-left{position:absolute;left:6vw;bottom:9vh;max-width:50vw}
+  .bottom-right{position:absolute;right:6vw;bottom:9vh;max-width:50vw;text-align:right}
+  .top-right{position:absolute;right:6vw;top:6vh;text-align:right}
+
+  /* ============ Stat（数字矩阵） ============ */
+  .stat{display:flex;flex-direction:column;gap:1vh;align-items:flex-start}
+  .stat .n{font-family:var(--serif-en);font-weight:800;font-size:8vw;line-height:.88;letter-spacing:-.03em;font-feature-settings:"tnum"}
+  .stat .l{font-family:var(--sans-zh);font-size:max(13px,1.05vw);opacity:.7;margin-top:1vh;font-weight:400;line-height:1.5}
+  .stat .m{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;opacity:.5;margin-bottom:.2vh}
+
+  /* ============ Callout（引用框） ============ */
+  .callout{padding:3vh 2.4vw;border-left:3px solid currentColor;position:relative;font-family:var(--serif-zh);font-size:max(15px,1.2vw);line-height:1.55;opacity:.92}
+  .slide.light .callout{background:rgba(var(--ink-rgb),.05)}
+  .slide.dark .callout{background:rgba(var(--paper-rgb),.06)}
+  .callout .cite{display:block;margin-top:1.6vh;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.6}
+  .callout .q-big{font-family:var(--serif-zh);font-weight:600;font-size:max(17px,1.6vw);line-height:1.42}
+
+  /* ============ Platform（平台卡） ============ */
+  .plat{display:flex;flex-direction:column;justify-content:flex-end;padding:2vh 0;border-top:1px solid currentColor;border-color:rgba(127,127,127,.35)}
+  .plat .name{font-family:var(--serif-zh);font-weight:700;font-size:1.8vw;margin-bottom:.6vh}
+  .plat .nb{font-family:var(--serif-en);font-weight:700;font-size:3.2vw;letter-spacing:-.02em;line-height:1;font-feature-settings:"tnum"}
+  .plat .sub{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.55;margin-top:.6vh}
+  .plat .fill{font-family:var(--sans-zh);font-weight:300;font-size:2.4vw;opacity:.28;letter-spacing:-.01em;line-height:1}
+
+  /* ============ Rowline（表格行） ============ */
+  .rowline{display:grid;grid-template-columns:1fr 2fr 1fr;gap:2vw;padding:2.2vh 0;border-top:1px solid currentColor;align-items:center;border-color:rgba(127,127,127,.25)}
+  .rowline:last-child{border-bottom:1px solid currentColor;border-color:rgba(127,127,127,.25)}
+  .rowline .k{font-family:var(--serif-zh);font-weight:700;font-size:1.7vw}
+  .rowline .v{font-family:var(--sans-zh);font-weight:400;font-size:max(14px,1.2vw);opacity:.85;line-height:1.55}
+  .rowline .m{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.6;justify-self:end}
+
+  /* ============ Pillar（支柱卡片） ============ */
+  .pillar{display:flex;flex-direction:column;gap:1.8vh}
+  .pillar .ic{font-family:var(--serif-en);font-style:italic;font-size:2.6vw;opacity:.45;font-weight:400}
+  .pillar .ic svg{width:2.8vw;height:2.8vw;stroke-width:1.2;opacity:.7}
+  .pillar .t{font-family:var(--serif-zh);font-weight:700;font-size:2.4vw;line-height:1.1}
+  .pillar .d{font-family:var(--sans-zh);font-weight:400;font-size:max(14px,1.1vw);opacity:.76;line-height:1.6}
+
+  /* ============ Signature / Highlight ============ */
+  .sign{font-family:var(--serif-en);font-style:italic;font-weight:500;font-size:2vw;opacity:.7}
+  .hi{position:relative;display:inline}
+  .slide.dark .hi::after{content:"";position:absolute;left:-.1em;right:-.1em;bottom:-.05em;height:.28em;background:rgba(var(--paper-rgb),.15);z-index:-1}
+  .slide.light .hi::after{content:"";position:absolute;left:-.1em;right:-.1em;bottom:-.05em;height:.28em;background:rgba(var(--ink-rgb),.08);z-index:-1}
+
+  /* ============ Icons（Lucide via CDN） ============ */
+  .ico{width:1em;height:1em;display:inline-block;vertical-align:-.12em;stroke:currentColor;fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  .ico-lg,.ico-md,.ico-sm{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
+  .ico-lg{width:2.6vw;height:2.6vw;stroke-width:1.2;display:inline-block}
+  .ico-md{width:1.8vw;height:1.8vw;stroke-width:1.3;display:inline-block;vertical-align:-.4em}
+  .ico-sm{width:1.1vw;height:1.1vw;stroke-width:1.4;display:inline-block;vertical-align:-.15em;opacity:.7}
+
+  /* ============ 图片占位（虚线框，提示设计师位置） ============ */
+  .img-slot{border:1.5px dashed rgba(127,127,127,.4);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1vh;padding:2vh 2vw;font-family:var(--mono);font-size:10px;letter-spacing:.28em;text-transform:uppercase;opacity:.55;position:relative;aspect-ratio:16/9;width:100%;max-height:56vh;margin-inline:auto;box-sizing:border-box}
+  .img-slot::before{content:"";position:absolute;inset:8px;border:1px solid currentColor;opacity:.2}
+  .img-slot .plus{font-size:2vw;font-weight:300;opacity:.5;letter-spacing:0}
+  .img-slot .label{position:relative;z-index:2;text-align:center}
+  .img-slot.r-4x3{aspect-ratio:4/3}
+  .img-slot.r-3x2{aspect-ratio:3/2}
+  .img-slot.r-1x1{aspect-ratio:1/1}
+
+  /* ============ 图片实填框（关键：固定高度 + 只裁底部） ============
+     重要约束：高度用内联 height:Nvh 精确控制，不要用 aspect-ratio（会撑破布局）
+     object-position:top center 保证严禁裁剪顶部和左右，只裁剪底部
+  */
+  .frame-img{overflow:hidden;position:relative;background:rgba(0,0,0,.04);box-sizing:border-box;width:100%;border-radius:4px}
+  .slide.dark .frame-img{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.12)}
+  .frame-img > img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
+  .frame-img.fit-contain > img{object-fit:contain;object-position:center center}
+  .frame-img.r-16x9{aspect-ratio:16/9;max-height:64vh}
+  .frame-img.r-16x10{aspect-ratio:16/10;max-height:56vh}
+  .frame-img.r-4x3{aspect-ratio:4/3;max-height:56vh}
+  .frame-img.r-3x2{aspect-ratio:3/2;max-height:46vh}
+  .frame-img.r-3x4{aspect-ratio:3/4;max-height:60vh}
+  .frame-img.r-1x1{aspect-ratio:1/1;max-height:50vh}
+  .frame-img.h-16{height:16vh}
+  .frame-img.h-18{height:18vh}
+  .frame-img.h-22{height:22vh}
+  .frame-img.h-26{height:26vh}
+  .frame-img.h-28{height:28vh}
+  .frame-cap{display:flex;justify-content:space-between;align-items:baseline;gap:1vw;margin-top:.8vh;font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;opacity:.72}
+  .frame-cap .pf{font-family:var(--serif-zh);font-weight:600;font-size:max(13px,1vw);letter-spacing:.04em;text-transform:none;opacity:.94}
+  .frame-cap .nb{font-family:var(--serif-en);font-style:italic;font-size:max(15px,1.2vw);letter-spacing:.02em;text-transform:none;opacity:.88}
+  .frame-cap .idx{font-family:var(--mono);opacity:.5}
+  figure.tile{display:flex;flex-direction:column;margin:0;min-width:0}
+  figure.tile > .frame-img{flex:0 0 auto}
+
+  /* ============ 导航 ============ */
+  #nav{position:fixed;left:50%;bottom:2.6vh;transform:translateX(-50%);z-index:30;display:flex;gap:10px;padding:8px 14px;border-radius:999px;background:rgba(0,0,0,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  #nav .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);cursor:pointer;transition:all .3s ease;border:0;padding:0}
+  #nav .dot:hover{background:rgba(255,255,255,.5);transform:scale(1.15)}
+  #nav .dot.active{background:rgba(255,255,255,.95);width:22px;border-radius:999px}
+  body.light-bg #nav{background:rgba(255,255,255,.25)}
+  body.light-bg #nav .dot{background:rgba(var(--ink-rgb),.25)}
+  body.light-bg #nav .dot.active{background:rgba(var(--ink-rgb),.9)}
+  #hint{position:fixed;bottom:3vh;right:3vw;z-index:30;font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;opacity:.4;mix-blend-mode:difference;color:#aaa}
+  body.low-power #hint{opacity:.72;color:var(--paper);mix-blend-mode:normal}
+  body.light-bg.low-power #hint{color:var(--ink)}
+
+  /* ============================================================
+     ============ LAYOUTS API · 面向 agent 的类（v2）============
+     所有 layouts.md 中的骨架都基于下面这套命名。
+     如果你在 layouts.md 里看到某个类，它必须在下面有定义。
+     ============================================================ */
+
+  /* ---------- .frame：每页主内容容器 ---------- */
+  .frame{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  /* 当 .frame 同时加了 grid 类时，grid 的 display:grid 覆盖 flex */
+  .frame.grid-2-7-5,
+  .frame.grid-2-6-6,
+  .frame.grid-2-8-4,
+  .frame.grid-3-3,
+  .frame.grid-6{display:grid}
+
+  /* ---------- 标题层级（API 名称，衬线为主） ---------- */
+  .h-hero{
+    font-family:var(--serif-zh);
+    font-weight:900;
+    font-size:10vw;
+    line-height:.96;
+    letter-spacing:-.02em;
+  }
+  .h-xl{
+    font-family:var(--serif-zh);
+    font-weight:700;
+    font-size:6.2vw;
+    line-height:1.08;
+    letter-spacing:-.01em;
+  }
+  .h-sub{
+    font-family:var(--serif-zh);
+    font-weight:500;
+    font-size:3.1vw;
+    line-height:1.25;
+    letter-spacing:0;
+    opacity:.7;
+  }
+  .h-md{
+    font-family:var(--serif-zh);
+    font-weight:600;
+    font-size:2.3vw;
+    line-height:1.3;
+  }
+  /* 英文标题专用（Playfair 衬线） */
+  .h-hero-en,.h-xl-en{font-family:var(--serif-en);letter-spacing:-.025em}
+
+  /* ---------- lead 引语 ---------- */
+  .lead{
+    font-family:var(--serif-zh);
+    font-weight:400;
+    font-size:1.75vw;
+    line-height:1.5;
+    opacity:.86;
+  }
+
+  /* ---------- meta-row 底部元数据 ---------- */
+  .meta-row{
+    display:flex;
+    gap:1.2em;
+    align-items:baseline;
+    flex-wrap:wrap;
+    font-family:var(--mono);
+    font-size:max(12px,.92vw);
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    opacity:.6;
+  }
+
+  /* ---------- stat-card（数据大字报用） ---------- */
+  .stat-card{
+    display:flex;
+    flex-direction:column;
+    gap:.8vh;
+    align-items:flex-start;
+    padding-top:1.6vh;
+    border-top:1px solid currentColor;
+    border-color:rgba(127,127,127,.3);
+  }
+  .stat-card .stat-label{
+    font-family:var(--mono);
+    font-size:max(10px,.78vw);
+    letter-spacing:.24em;
+    text-transform:uppercase;
+    opacity:.55;
+  }
+  .stat-card .stat-nb{
+    font-family:var(--serif-en);
+    font-weight:800;
+    font-size:5.8vw;
+    line-height:.9;
+    letter-spacing:-.03em;
+    font-feature-settings:"tnum";
+    margin-top:.4vh;
+  }
+  .stat-card .stat-nb .stat-unit{
+    font-family:var(--serif-zh);
+    font-weight:500;
+    font-size:.38em;
+    letter-spacing:0;
+    opacity:.72;
+    margin-left:.14em;
+  }
+  .stat-card .stat-note{
+    font-family:var(--sans-zh);
+    font-weight:400;
+    font-size:max(13px,1.05vw);
+    line-height:1.5;
+    opacity:.72;
+    margin-top:.6vh;
+  }
+  /* 当 stat-card 用于 grid-4（2x2），数字适度放大；若页面有标题+引文在上方，可内联 style 覆盖为更小值 */
+  .grid-4 .stat-card .stat-nb{font-size:5vw}
+  /* 当只有 3 个，字也可以稍大 */
+  .grid-3 .stat-card .stat-nb{font-size:6.8vw}
+
+  /* ---------- pipeline（流水线） ---------- */
+  .pipeline-section{
+    margin-top:4.4vh;
+    padding-top:2.8vh;
+    border-top:1px dashed rgba(127,127,127,.32);
+  }
+  .pipeline-section:first-of-type{
+    border-top:0;
+    padding-top:0;
+    margin-top:3vh;
+  }
+  .pipeline-label{
+    font-family:var(--mono);
+    font-size:max(11px,.85vw);
+    letter-spacing:.24em;
+    text-transform:uppercase;
+    opacity:.62;
+    margin-bottom:2.2vh;
+  }
+  .pipeline{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:1.2vw;
+  }
+  .pipeline[data-cols="3"]{grid-template-columns:repeat(3,1fr)}
+  .pipeline[data-cols="4"]{grid-template-columns:repeat(4,1fr)}
+  .pipeline[data-cols="6"]{grid-template-columns:repeat(6,1fr)}
+  .step{
+    display:flex;
+    flex-direction:column;
+    gap:.8vh;
+    padding-top:1.4vh;
+    border-top:1px solid currentColor;
+    border-color:rgba(127,127,127,.35);
+  }
+  .step-nb{
+    font-family:var(--serif-en);
+    font-style:italic;
+    font-weight:500;
+    font-size:1.15vw;
+    opacity:.45;
+  }
+  .step-title{
+    font-family:var(--sans-zh);
+    font-weight:700;
+    font-size:1.55vw;
+    letter-spacing:.01em;
+    line-height:1.2;
+  }
+  .step-desc{
+    font-family:var(--sans-zh);
+    font-weight:400;
+    font-size:max(12px,.95vw);
+    line-height:1.45;
+    opacity:.72;
+  }
+
+  /* ---------- 网格（layouts.md 所用） ---------- */
+  /* 这些类独立挂到任何容器上都能生效，不依赖 .frame 复合选择器 */
+  .grid-2-7-5{display:grid;grid-template-columns:7fr 5fr;gap:3vw 4vh;align-items:start}
+  .grid-2-6-6{display:grid;grid-template-columns:1fr 1fr;gap:3vw 4vh;align-items:start}
+  .grid-2-8-4{display:grid;grid-template-columns:8fr 4fr;gap:3vw 4vh;align-items:start}
+  .grid-3-3{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    grid-auto-rows:minmax(0,1fr);
+    gap:2.4vh 2vw;
+  }
+  /* grid-6 已在旧样式里定义为 3x2，这里仅补 align */
+
+  /* ---------- 图片 frame-img（layouts.md 主命名） ---------- */
+  /* 在旧样式里已定义，这里补 img-cap 命名别名与增强 */
+  figure.frame-img{margin:0;display:flex;flex-direction:column;min-width:0}
+  .img-cap{
+    display:block;
+    margin-top:.8vh;
+    font-family:var(--mono);
+    font-size:max(10px,.8vw);
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    opacity:.6;
+  }
+  /* callout src 命名别名 */
+  .callout-src{
+    display:block;
+    margin-top:1.6vh;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    opacity:.6;
+  }
+
+  /* ---------- chrome & foot 补位（layouts.md 简单写法） ---------- */
+  .chrome{font-family:var(--mono);font-size:max(11px,.78vw);letter-spacing:.2em;text-transform:uppercase;opacity:.62}
+  .foot{font-family:var(--mono);font-size:max(11px,.78vw);letter-spacing:.18em;text-transform:uppercase;opacity:.5}
+
+  /* ============ 动效系统(Motion One 驱动) ============
+     所有 [data-anim] 元素默认隐藏,进入页面时由 JS 逐个揭示。
+     - cascade(默认):按 DOM 顺序 stagger 120ms 淡入 + y:16→0
+     - hero(hero 页自动):慢一点的 stagger 180ms
+     - quote(含 [data-anim="line"]):逐行 600ms 淡入
+     - directional(含 [data-anim="left|right"]):左→分隔线→右
+     - pipeline(data-animate="pipeline"):Space/→ 手动推进
+     Motion One 没加载成功时(CDN 断 + 本地丢),所有 [data-anim] 会兜底显示。
+  */
+  [data-anim]{opacity:1}
+  body.motion-ready [data-anim]{opacity:0}
+  body.motion-ready [data-anim="left"]{transform:translateX(-24px)}
+  body.motion-ready [data-anim="right"]{transform:translateX(24px)}
+  body.motion-ready [data-anim="line"]{opacity:0;transform:translateY(10px)}
+  body.motion-ready [data-animate="pipeline"] [data-anim]{opacity:.15}
+  body.low-power #deck{transition:none!important}
+  body.low-power *,
+  body.low-power *::before,
+  body.low-power *::after{animation:none!important;transition:none!important}
+  body.low-power.motion-ready [data-anim],
+  body.low-power [data-anim]{opacity:1!important;transform:none!important}
+
+  /* ---------- 响应式降级 ---------- */
+  @media (max-width:900px){
+    .display{font-size:16vw}
+    .display-zh{font-size:12vw}
+    .h1-zh{font-size:7vw}
+    .h-hero{font-size:14vw}
+    .h-xl{font-size:9vw}
+    .pipeline{grid-template-columns:repeat(2,1fr)}
+    .grid-2-7-5,.grid-2-6-6,.grid-2-8-4{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<script>
+  (function(){
+    const KEY = 'guizang-ppt-low-power';
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const stored = localStorage.getItem(KEY);
+    window.__lowPowerMode = stored === '1' || (stored === null && reduced);
+    function updateHint(){
+      const hint = document.getElementById('hint');
+      if(hint) hint.textContent = `← → 翻页 · B ${window.__lowPowerMode ? '动态' : '静态'} · ESC 索引`;
+    }
+    window.__setLowPowerMode = function(on, opts={}){
+      window.__lowPowerMode = !!on;
+      document.body.classList.toggle('low-power', window.__lowPowerMode);
+      if(opts.persist !== false) localStorage.setItem(KEY, window.__lowPowerMode ? '1' : '0');
+      if(window.__lowPowerMode && document.getAnimations){
+        document.getAnimations().forEach(a=>a.cancel());
+      }
+      updateHint();
+      dispatchEvent(new CustomEvent('ppt-low-power-change', {detail:{on:window.__lowPowerMode}}));
+      if(window.__playSlide) window.__playSlide(window.__currentSlideIndex || 0);
+    };
+    document.body.classList.toggle('low-power', window.__lowPowerMode);
+    addEventListener('DOMContentLoaded', updateHint, {once:true});
+  })();
+</script>
+
+<canvas id="bg-dark" class="bg"></canvas>
+<canvas id="bg-light" class="bg"></canvas>
+<div id="hint">← → 翻页 · B 静态 · ESC 索引</div>
+
+<div id="deck">
+
+<!-- ============================================================
+     SLIDES 插入区 · 在此处填充所有 <section class="slide ..."> 页面
+     每页模板参考 references/page-patterns.md
+     页面组件参考 references/components.md
+     ============================================================ -->
+
+<!-- ══════════════════════════════════════════════════════════════
+     Page 1: 开场封面 (hero dark)
+     ══════════════════════════════════════════════════════════════ -->
+<section class="slide hero dark">
+  <div class="chrome">
+    <div>AI 行为审计 · 深度分享</div>
+    <div>Vol.01</div>
+  </div>
+  <div class="frame" style="display:grid; gap:4vh; align-content:center; min-height:80vh">
+    <div class="kicker" data-anim>AI Agent 写了一堆代码，除了看 diff，你怎么知道它的行为变好还是变坏？</div>
+    <h1 class="h-hero" data-anim>Paporot</h1>
+    <h2 class="h-sub" data-anim>AI 生成代码的沙盒化行为审计管道</h2>
+    <p class="lead" style="max-width:60vw" data-anim>
+      完全自动化的 Skill DAG 编排 · WASM 沙盒隔离 · 三层行为版本控制 · 确定性 + LLM 混合分析
+    </p>
+    <div class="meta-row" data-anim>
+      <span>Rust</span><span>·</span><span>wasmtime</span><span>·</span><span>WASM</span><span>·</span><span>MIT</span>
+    </div>
+  </div>
+  <div class="foot">
+    <div>一场关于 AI Agent 行为审计的深度分享</div>
+    <div>— 2026 —</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     Page 2: 核心痛点 — 你看得到代码 diff，看不到行为 diff
+     ══════════════════════════════════════════════════════════════ -->
+<section class="slide dark">
+  <div class="chrome">
+    <div>Problem · 核心痛点</div>
+    <div>Act I · 2 / 14</div>
+  </div>
+  <div class="frame" style="display:grid; gap:3vh; align-content:center">
+    <div>
+      <div class="kicker" data-anim>同一个 Bug，两次修复，代码都对</div>
+      <h2 class="h-xl" data-anim>你看得到代码 diff，<br>但你看不到行为 diff</h2>
+      <p class="lead" style="max-width:68vw; margin-top:2vh" data-anim>
+        第一次用了 12 个 tool call，第二次用了 24 个。多出来的 12 步在做什么？是更谨慎了，还是在绕弯路？
+      </p>
+    </div>
+    <div class="callout" style="margin-top:3vh" data-anim>
+      <span class="q-big">Paporot 回答两个核心问题：Agent 这次提交改了什么能力？Agent 的行为变好还是变坏了？</span>
+      <span class="callout-src">Behavior Version Control for AI-Generated Code</span>
+    </div>
+  </div>
+  <div class="foot">
+    <div>You see code diffs — but not behavior diffs</div>
+    <div>— · —</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     Page 3: 数据大字报 — 四个支柱 (hero light)
+     ══════════════════════════════════════════════════════════════ -->
+<section class="slide hero light">
+  <div class="chrome">
+    <div>Philosophy · 四个支柱</div>
+    <div>Act I · 3 / 14</div>
+  </div>
+  <div class="frame" style="display:grid; gap:6vh; align-content:center; min-height:80vh">
+    <div>
+      <div class="kicker" data-anim>全自动 · 安全 · 可度量 · 可解释</div>
+      <h2 class="h-xl" style="font-size:5.8vw" data-anim>Paporot 怎么做到？</h2>
+    </div>
+    <div class="grid-6" style="margin-top:3vh">
+      <div class="stat-card" data-anim>
+        <div class="stat-label">Skill DAG 编排</div>
+        <div class="stat-nb">6<span class="stat-unit"> Skill</span></div>
+        <div class="stat-note">L1-L6 拓扑排序自动执行</div>
+      </div>
+      <div class="stat-card" data-anim>
+        <div class="stat-label">WASM 沙盒</div>
+        <div class="stat-nb">3<span class="stat-unit"> Host Func</span></div>
+        <div class="stat-note">仅有读文件/写文件/LLM 调用</div>
+      </div>
+      <div class="stat-card" data-anim>
+        <div class="stat-label">行为版本控制</div>
+        <div class="stat-nb">P0-P2<span class="stat-unit"> 层</span></div>
+        <div class="stat-note">结构→几何→网络逐层深入</div>
+      </div>
+      <div class="stat-card" data-anim>
+        <div class="stat-label">CLI 子命令</div>
+        <div class="stat-nb">16<span class="stat-unit"> 个</span></div>
+        <div class="stat-note">snapshot · diff · analyze · trace · ...</div>
+      </div>
+      <div class="stat-card" data-anim>
+        <div class="stat-label">确定性核心</div>
+        <div class="stat-nb">P0-P2<span class="stat-unit"> 层</span></div>
+        <div class="stat-note">零 LLM 参与，结果可复现</div>
+      </div>
+      <div class="stat-card" data-anim>
+        <div class="stat-label">报告格式</div>
+        <div class="stat-nb">3<span class="stat-unit"> 种</span></div>
+        <div class="stat-note">JSON · Markdown · HTML Dashboard</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Four Pillars · Skill DAG + WASM Sandbox + Behavior VC + Deterministic Core</div>
+    <div>— · —</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     Page 4: Trace — 数据源头 (light)
+     ══════════════════════════════════════════════════════════════ -->
+<section class="slide light">
+  <div class="chrome">
+    <div>Data Source · Trace</div>
+    <div>Act I · 4 / 14</div>
+  </div>
+  <div class="frame grid-2-7-5" style="padding-top:4vh">
+    <div style="display:flex; flex-direction:column; justify-content:center; gap:3vh">
+      <div>
+        <div class="kicker" data-anim>所有分析的起点</div>
+        <h2 class="h-xl" data-anim>Execution Trace</h2>
+        <p class="lead" style="margin-top:1.5vh; font-size:1.4vw" data-anim>
+          一次 Agent 执行的完整记录：prompt、按时间排序的 tool 调用序列、每次调用的参数和耗时、观察结果、最终输出、token 消耗。
+        </p>
+      </div>
+      <div class="callout" data-anim>
+        <span class="q-big">Trace 怎么来？SDK 自动捕获（Captured）或日志导入（Imported）。Paporot 不做运行时监控，只消费已产生的 Trace 数据。</span>
+        <span class="callout-src">BehaviorTrace { id, session_id, tool_calls, observations, token_usage, ... }</span>
+      </div>
+    </div>
+    <div data-anim style="background:var(--ink-tint); border-radius:10px; padding:2.5vh 2vw; font-family:var(--mono); font-size:10px; color:#8b949e; overflow:auto; max-height:60vh">
+      <pre style="margin:0; line-height:1.6; white-space:pre-wrap; font-size:10px">
+<span style="color:#58a6ff">BehaviorTrace</span> {
+  <span style="color:#3fb950">id</span>: <span style="color:#a5d6ff">"trace_20260619_001"</span>
+  <span style="color:#3fb950">session_id</span>: <span style="color:#a5d6ff">"sess_abc123"</span>
+  <span style="color:#3fb950">prompt</span>: <span style="color:#a5d6ff">"修复登录页面的 token 过期问题"</span>
+  <span style="color:#3fb950">tool_calls</span>: [
+    { <span style="color:#3fb950">tool_name</span>: <span style="color:#a5d6ff">"read"</span>,
+      <span style="color:#3fb950">args</span>: {<span style="color:#a5d6ff">"path"</span>: <span style="color:#a5d6ff">"src/auth.ts"</span>},
+      <span style="color:#3fb950">duration_ms</span>: <span style="color:#a5d6ff">145</span> },
+    { <span style="color:#3fb950">tool_name</span>: <span style="color:#a5d6ff">"edit"</span>,
+      <span style="color:#3fb950">args</span>: {<span style="color:#a5d6ff">"path"</span>: <span style="color:#a5d6ff">"src/auth.ts"</span>},
+      <span style="color:#3fb950">duration_ms</span>: <span style="color:#a5d6ff">230</span> },
+    ...
+  ]
+  <span style="color:#3fb950">observations</span>: [...]
+  <span style="color:#3fb950">token_usage</span>: { <span style="color:#3fb950">input</span>: <span style="color:#a5d6ff">3400</span>, <span style="color:#3fb950">output</span>: <span style="color:#a5d6ff">1200</span> }
+  <span style="color:#3fb950">source</span>: <span style="color:#d29922">Captured</span> { <span style="color:#3fb950">agent_name</span>: <span style="color:#a5d6ff">"claude-code"</span> }
+}</pre>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Execution Trace · The single source of truth for all analysis</div>
+    <div>— · —</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     Page 5: WASM 沙盒架构 (dark)
+     ══════════════════════════════════════════════════════════════ -->
+<section class="slide dark">
+  <div class="chrome">
+    <div>Architecture · WASM 沙盒</div>
+    <div>Act II · 5 / 14</div>
+  </div>
+  <div class="frame" style="display:grid; gap:2vh; align-content:center">
+    <div>
+      <div class="kicker" data-anim>安全是设计的起点，不是后加的特性</div>
+      <h2 class="h-xl" data-anim>两层架构 · WASM 沙盒隔离</h2>
+    </div>
+    <div style="flex:1; display:flex; align-items:center; justify-content:center; min-height:0" data-anim>
+      <svg viewBox="0 0 1060 700" style="width:100%; max-width:1000px; max-height:52vh; font-family:system-ui,-apple-system,sans-serif" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/></filter>
+          <marker id="aBlu" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#58a6ff"/></marker>
+          <marker id="aGrn" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#3fb950"/></marker>
+        </defs>
+        <!-- 宿主层 -->
+        <rect x="20" y="10" width="1020" height="180" rx="12" fill="none" stroke="#30363d" stroke-width="1.5"/>
+        <text x="40" y="40" font-size="16" font-weight="700" fill="#58a6ff">宿主层 (Native Binary)</text>
+        <text x="40" y="58" font-size="11" fill="#8b949e" font-family="monospace">不包含任何分析逻辑 · 仅做 CLI 解析 + wasmtime 加载 + 3 个 Host Function 注册</text>
+
+        <rect x="50" y="80" width="200" height="80" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5" filter="url(#sh)"/>
+        <text x="150" y="110" font-size="14" font-weight="700" fill="#c9d1d9" text-anchor="middle">CLI (clap)</text>
+        <text x="150" y="130" font-size="10" fill="#8b949e" text-anchor="middle" font-family="monospace">16 个子命令</text>
+        <text x="150" y="146" font-size="9" fill="#484f58" text-anchor="middle">analyze · trace · snapshot · diff</text>
+
+        <rect x="430" y="80" width="240" height="80" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="2" filter="url(#sh)"/>
+        <text x="550" y="108" font-size="14" font-weight="700" fill="#58a6ff" text-anchor="middle">SandboxHost</text>
+        <text x="550" y="126" font-size="10" fill="#8b949e" text-anchor="middle" font-family="monospace">wasmtime Engine + WASI Context</text>
+        <text x="550" y="144" font-size="9" fill="#484f58" text-anchor="middle">加载 paporot-core.wasm · 注册 Host Funcs</text>
+
+        <line x1="252" y1="120" x2="426" y2="120" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#aBlu)"/>
+
+        <rect x="850" y="80" width="170" height="80" rx="8" fill="#161b22" stroke="#d29922" stroke-width="1.5" filter="url(#sh)"/>
+        <text x="935" y="108" font-size="14" font-weight="700" fill="#d29922" text-anchor="middle">LLM 配置</text>
+        <text x="935" y="126" font-size="10" fill="#8b949e" text-anchor="middle" font-family="monospace">API Key · model</text>
+        <text x="935" y="144" font-size="9" fill="#484f58" text-anchor="middle">config.toml / env</text>
+
+        <line x1="672" y1="120" x2="846" y2="120" stroke="#d29922" stroke-width="1.5" stroke-dasharray="5 3"/>
+
+        <!-- 桥接层 -->
+        <line x1="530" y1="192" x2="530" y2="222" stroke="#3fb950" stroke-width="2" marker-end="url(#aGrn)"/>
+        <rect x="120" y="228" width="820" height="36" rx="8" fill="rgba(63,185,80,0.08)" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="6 3"/>
+        <text x="530" y="252" font-size="13" font-weight="700" fill="#3fb950" text-anchor="middle" font-family="monospace">3 Host Functions:  host_read_file  ·  host_write_file  ·  host_llm_call</text>
+
+        <line x1="530" y1="266" x2="530" y2="300" stroke="#3fb950" stroke-width="2.5" marker-end="url(#aGrn)"/>
+
+        <!-- WASM 沙盒层 -->
+        <rect x="20" y="310" width="1020" height="380" rx="12" fill="rgba(63,185,80,0.04)" stroke="#3fb950" stroke-width="2" stroke-dasharray="8 4"/>
+        <text x="40" y="340" font-size="16" font-weight="700" fill="#3fb950">WASM 沙盒 (paporot-core.wasm · wasm32-wasip1)</text>
+        <text x="40" y="358" font-size="11" fill="#8b949e" font-family="monospace">零文件系统访问 · 零网络访问 · 仅通过 3 个受控 Host Function 与外部交互</text>
+
+        <!-- Skill DAG -->
+        <text x="40" y="388" font-size="13" font-weight="700" fill="#58a6ff" font-family="monospace">Skill DAG 编排 (Kahn 拓扑排序)</text>
+
+        <!-- L1-L5 row -->
+        <g transform="translate(40,405)">
+          <rect x="0" y="0" width="174" height="65" rx="6" fill="rgba(63,185,80,0.08)" stroke="#3fb950" stroke-width="1.5"/>
+          <text x="87" y="22" font-size="12" font-weight="700" fill="#3fb950" text-anchor="middle" font-family="monospace">L1 仓库理解</text>
+          <text x="87" y="42" font-size="9" fill="#8b949e" text-anchor="middle">目标·技术栈·入口</text>
+          <text x="87" y="56" font-size="8" fill="#484f58" text-anchor="middle">repository-understanding</text>
+
+          <line x1="176" y1="32" x2="214" y2="32" stroke="#3fb950" stroke-width="1.5"/>
+
+          <rect x="218" y="0" width="174" height="65" rx="6" fill="rgba(63,185,80,0.08)" stroke="#3fb950" stroke-width="1.5"/>
+          <text x="305" y="22" font-size="12" font-weight="700" fill="#3fb950" text-anchor="middle" font-family="monospace">L2 模块发现</text>
+          <text x="305" y="42" font-size="9" fill="#8b949e" text-anchor="middle">聚类·职责·文件</text>
+          <text x="305" y="56" font-size="8" fill="#484f58" text-anchor="middle">module-discovery</text>
+
+          <line x1="394" y1="32" x2="432" y2="32" stroke="#3fb950" stroke-width="1.5"/>
+
+          <rect x="436" y="0" width="174" height="65" rx="6" fill="rgba(63,185,80,0.08)" stroke="#3fb950" stroke-width="1.5"/>
+          <text x="523" y="22" font-size="12" font-weight="700" fill="#3fb950" text-anchor="middle" font-family="monospace">L3 依赖分析</text>
+          <text x="523" y="42" font-size="9" fill="#8b949e" text-anchor="middle">依赖图·耦合度</text>
+          <text x="523" y="56" font-size="8" fill="#484f58" text-anchor="middle">dependency-analysis</text>
+
+          <line x1="612" y1="32" x2="650" y2="32" stroke="#3fb950" stroke-width="1.5"/>
+
+          <rect x="654" y="0" width="174" height="65" rx="6" fill="rgba(63,185,80,0.08)" stroke="#3fb950" stroke-width="1.5"/>
+          <text x="741" y="22" font-size="12" font-weight="700" fill="#3fb950" text-anchor="middle" font-family="monospace">L4 执行流</text>
+          <text x="741" y="42" font-size="9" fill="#8b949e" text-anchor="middle">端到端·副作用</text>
+          <text x="741" y="56" font-size="8" fill="#484f58" text-anchor="middle">runtime-flow-analysis</text>
+
+          <line x1="830" y1="32" x2="868" y2="32" stroke="#3fb950" stroke-width="1.5"/>
+
+          <rect x="872" y="0" width="174" height="65" rx="6" fill="rgba(63,185,80,0.08)" stroke="#3fb950" stroke-width="1.5"/>
+          <text x="959" y="22" font-size="12" font-weight="700" fill="#3fb950" text-anchor="middle" font-family="monospace">L5 行为边界</text>
+          <text x="959" y="42" font-size="9" fill="#8b949e" text-anchor="middle">核心·支撑组件</text>
+          <text x="959" y="56" font-size="8" fill="#484f58" text-anchor="middle">behavior-boundary</text>
+        </g>
+
+        <!-- Convergence lines L1→L5 → L6 -->
+        <g opacity="0.4">
+          <line x1="127" y1="472" x2="127" y2="502" stroke="#6d28d9" stroke-width="1" stroke-dasharray="3 2"/>
+          <line x1="345" y1="472" x2="345" y2="502" stroke="#6d28d9" stroke-width="1" stroke-dasharray="3 2"/>
+          <line x1="563" y1="472" x2="563" y2="502" stroke="#6d28d9" stroke-width="1" stroke-dasharray="3 2"/>
+          <line x1="781" y1="472" x2="781" y2="502" stroke="#6d28d9" stroke-width="1" stroke-dasharray="3 2"/>
+          <line x1="999" y1="472" x2="999" y2="502" stroke="#6d28d9" stroke-width="1" stroke-dasharray="3 2"/>
+        </g>
+
+        <!-- L6 总指挥 -->
+        <rect x="140" y="506" width="820" height="60" rx="8" fill="rgba(109,40,217,0.1)" stroke="#6d28d9" stroke-width="2.5"/>
+        <text x="550" y="530" font-size="15" font-weight="800" fill="#a371f7" text-anchor="middle" font-family="monospace">★ L6  architecture-doc-generator  总指挥 Skill</text>
+        <text x="550" y="550" font-size="11" fill="#8b949e" text-anchor="middle">消费 L1-L5 全部产出 → 聚合分析维度 → 生成 JSON / MD / HTML 三份最终报告</text>
+
+        <!-- L6 → 报告 -->
+        <line x1="550" y1="568" x2="550" y2="600" stroke="#6d28d9" stroke-width="2" marker-end="url(#aBlu)"/>
+
+        <!-- 报告输出 -->
+        <text x="40" y="626" font-size="13" font-weight="700" fill="#c9d1d9">报告输出</text>
+        <rect x="50" y="638" width="280" height="42" rx="6" fill="rgba(109,40,217,0.06)" stroke="#6d28d9" stroke-width="1"/>
+        <text x="190" y="656" font-size="12" font-weight="700" fill="#a371f7" text-anchor="middle" font-family="monospace">report.json</text>
+        <text x="190" y="672" font-size="9" fill="#8b949e" text-anchor="middle">机器消费 · CI/CD 集成</text>
+
+        <rect x="390" y="638" width="280" height="42" rx="6" fill="rgba(58,166,255,0.06)" stroke="#58a6ff" stroke-width="1"/>
+        <text x="530" y="656" font-size="12" font-weight="700" fill="#58a6ff" text-anchor="middle" font-family="monospace">report.md</text>
+        <text x="530" y="672" font-size="9" fill="#8b949e" text-anchor="middle">开发者阅读 · 代码评审</text>
+
+        <rect x="730" y="638" width="280" height="42" rx="6" fill="rgba(63,185,80,0.06)" stroke="#3fb950" stroke-width="1"/>
+        <text x="870" y="656" font-size="12" font-weight="700" fill="#3fb950" text-anchor="middle" font-family="monospace">dashboard.html</text>
+        <text x="870" y="672" font-size="9" fill="#8b949e" text-anchor="middle">交互式面板 · 团队共享</text>
+      </svg>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Two-Layer Architecture · Native Host + WASM Sandbox + Skill DAG</div>
+    <div>— · —</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     Page 6: Skill DAG 自动编排 (hero dark)
+     ══════════════════════════════════════════════════════════════ -->
+<section class="slide hero dark">
+  <div class="chrome">
+    <div>Pipeline · Skill 自动编排</div>
+    <div>Act II · 6 / 14</div>
+  </div>
+  <div class="frame" style="display:grid; gap:3vh; align-content:center; min-height:80vh">
+    <div>
+      <div class="kicker" data-anim>一行命令，6 个 Skill 自动跑</div>
+      <h2 class="h-hero" data-anim style="font-size:7vw">Skill DAG 编排</h2>
+      <p class="lead" style="max-width:62vw; margin-top:1.5vh" data-anim>Kahn 拓扑排序 → 同层并行，不同层严格串行。L6 作为总指挥 Skill 聚合 L1-L5 全部输出。</p>
+    </div>
+    <div data-anim style="
+      display:flex; gap:6px; align-items:stretch; justify-content:center;
+      margin-top:2vh;
+    ">
+      <div style="flex:1; max-width:140px; background:rgba(63,185,80,.1); border:1px solid rgba(63,185,80,.3); border-radius:8px; padding:12px 8px; text-align:center">
+        <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:#3fb950">L1</div>
+        <div style="font-size:11px;font-weight:600;color:var(--paper);margin-top:4px">仓库理解</div>
+        <div style="font-size:9px;opacity:.55;margin-top:3px">目标/技术栈/入口</div>
+      </div>
+      <div style="display:flex;align-items:center;font-size:20px;color:#3fb950;opacity:.5">→</div>
+      <div style="flex:1; max-width:140px; background:rgba(63,185,80,.1); border:1px solid rgba(63,185,80,.3); border-radius:8px; padding:12px 8px; text-align:center">
+        <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:#3fb950">L2</div>
+        <div style="font-size:11px;font-weight:600;color:var(--paper);margin-top:4px">模块发现</div>
+        <div style="font-size:9px;opacity:.55;margin-top:3px">聚类/职责/文件</div>
+      </div>
+      <div style="display:flex;align-items:center;font-size:20px;color:#3fb950;opacity:.5">→</div>
+      <div style="flex:1; max-width:140px; background:rgba(63,185,80,.1); border:1px solid rgba(63,185,80,.3); border-radius:8px; padding:12px 8px; text-align:center">
+        <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:#3fb950">L3</div>
+        <div style="font-size:11px;font-weight:600;color:var(--paper);margin-top:4px">依赖分析</div>
+        <div style="font-size:9px;opacity:.55;margin-top:3px">依赖图/耦合度</div>
+      </div>
+      <div style="display:flex;align-items:center;font-size:20px;color:#3fb950;opacity:.5">→</div>
+      <div style="flex:1; max-width:140px; background:rgba(63,185,80,.1); border:1px solid rgba(63,185,80,.3); border-radius:8px; padding:12px 8px; text-align:center">
+        <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:#3fb950">L4</div>
+        <div style="font-size:11px;font-weight:600;color:var(--paper);margin-top:4px">执行流</div>
+        <div style="font-size:9px;opacity:.55;margin-top:3px">端到端/副作用</div>
+      </div>
+      <div style="display:flex;align-items:center;font-size:20px;color:#3fb950;opacity:.5">→</div>
+      <div style="flex:1; max-width:140px; background:rgba(63,185,80,.1); border:1px solid rgba(63,185,80,.3); border-radius:8px; padding:12px 8px; text-align:center">
+        <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:#3fb950">L5</div>
+        <div style="font-size:11px;font-weight:600;color:var(--paper);margin-top:4px">行为边界</div>
+        <div style="font-size:9px;opacity:.55;margin-top:3px">核心/支撑组件</div>
+      </div>
+      <div style="display:flex;align-items:center;font-size:20px;color:#a371f7;opacity:.7">→</div>
+      <div style="flex:1.3; max-width:170px; background:rgba(109,40,217,.15); border:1px solid rgba(163,113,247,.4); border-radius:8px; padding:12px 10px; text-align:center">
+        <div style="font-family:var(--mono);font-size:14px;font-weight:800;color:#a371f7">★ L6</div>
+        <div style="font-size:11px;font-weight:600;color:var(--paper);margin-top:4px">总指挥 Skill</div>
+        <div style="font-size:9px;opacity:.55;margin-top:3px">聚合 → 三份报告</div>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:2vh" data-anim>
+      <span class="q-big">paporot analyze —— 全自动。没有任何人工干预点。可选参数仅 --prd（PRD 文档）、--input（额外输入）、--api-key（LLM 密钥）。</span>
+      <span class="callout-src">Kahn's Algorithm · Topological Sort · DAG Engine</span>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Skill Pipeline · One Command, Fully Automated</div>
+    <div>— · —</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     Page 7: P0 行为状态机 (light)
+     ══════════════════════════════════════════════════════════════ -->
+<section class="slide light">
+  <div class="chrome">
+    <div>Behavior · P0 状态机</div>
+    <div>Act III · 7 / 14</div>
+  </div>
+  <div class="frame" style="display:grid; gap:3vh; align-content:center">
+    <div>
+      <div class="kicker" data-anim>Trace 序列 → 有向状态图</div>
+      <h2 class="h-xl" data-anim>P0 · 行为状态机</h2>
+      <p class="lead" style="max-width:68vw; margin-top:1.5vh" data-anim>把 Agent 的线性 tool call 序列分段：定位 → 修改 → 验证 → 提交。三层 pipeline 自动构建。</p>
+    </div>
+    <div data-anim style="display:flex; gap:3vw; align-items:stretch; margin-top:4vh">
+      <!-- 左侧：Pipeline 说明 -->
+      <div style="flex:1; display:flex; flex-direction:column; gap:1.8vh">
+        <div class="callout" style="font-size:.9vw">
+          <span class="q-big" style="font-size:1.1vw">Layer 1 · 硬分割</span>
+          <p style="margin-top:.6vh;font-size:.85vw;opacity:.75">RuleSegmenter 按 tool 类别硬切：read/grep → locate，write/edit → modify，test/build → verify，commit → commit</p>
+        </div>
+        <div class="callout" style="font-size:.9vw">
+          <span class="q-big" style="font-size:1.1vw">Layer 2 · 窗口候选</span>
+          <p style="margin-top:.6vh;font-size:.85vw;opacity:.75">WindowBuilder 滑动窗口找细粒度状态候选，每个窗口一个主导 phase 标签</p>
+        </div>
+        <div class="callout" style="font-size:.9vw">
+          <span class="q-big" style="font-size:1.1vw">Layer 3 · 相邻合并</span>
+          <p style="margin-top:.6vh;font-size:.85vw;opacity:.75">AdjacentMerger 合并相似候选状态 → 构建 BehaviorStateGraph</p>
+        </div>
+      </div>
+      <!-- 右侧：状态机 SVG -->
+      <div style="flex:1.2; display:flex; align-items:center; justify-content:center">
+        <svg viewBox="0 0 420 280" style="width:100%; max-width:480px; max-height:34vh; font-family:system-ui,sans-serif" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="p0a" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#58a6ff"/></marker>
+            <marker id="p0b" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#3fb950"/></marker>
+          </defs>
+          <!-- 时间线标注 -->
+          <rect x="40" y="40" width="80" height="42" rx="6" fill="rgba(88,166,255,.1)" stroke="#58a6ff" stroke-width="1.5"/>
+          <text x="80" y="62" font-size="10" font-weight="700" fill="#58a6ff" text-anchor="middle">locate</text>
+          <text x="80" y="76" font-size="7" fill="#8b949e" text-anchor="middle">8 read/search</text>
+
+          <line x1="122" y1="61" x2="152" y2="61" stroke="#58a6ff" stroke-width="2" marker-end="url(#p0a)"/>
+
+          <rect x="156" y="40" width="80" height="42" rx="6" fill="rgba(210,153,34,.1)" stroke="#d29922" stroke-width="1.5"/>
+          <text x="196" y="62" font-size="10" font-weight="700" fill="#d29922" text-anchor="middle">modify</text>
+          <text x="196" y="76" font-size="7" fill="#8b949e" text-anchor="middle">6 write/edit</text>
+
+          <line x1="238" y1="61" x2="268" y2="61" stroke="#58a6ff" stroke-width="2" marker-end="url(#p0a)"/>
+
+          <rect x="272" y="40" width="80" height="42" rx="6" fill="rgba(88,166,255,.1)" stroke="#58a6ff" stroke-width="1.5"/>
+          <text x="312" y="62" font-size="10" font-weight="700" fill="#58a6ff" text-anchor="middle">verify</text>
+          <text x="312" y="76" font-size="7" fill="#8b949e" text-anchor="middle">3 test/lint</text>
+
+          <line x1="354" y1="61" x2="384" y2="61" stroke="#3fb950" stroke-width="2" marker-end="url(#p0b)"/>
+
+          <rect x="40" y="110" width="80" height="42" rx="6" fill="rgba(63,185,80,.1)" stroke="#3fb950" stroke-width="1.5"/>
+          <text x="80" y="132" font-size="10" font-weight="700" fill="#3fb950" text-anchor="middle">commit</text>
+          <text x="80" y="146" font-size="7" fill="#8b949e" text-anchor="middle">1 commit</text>
+
+          <!-- 侧边说明 -->
+          <text x="370" y="104" font-size="9" fill="currentColor" opacity="0.5" text-anchor="middle">时间线</text>
+          <line x1="380" y1="110" x2="380" y2="150" stroke="currentColor" stroke-opacity="0.15" stroke-width="1"/>
+          <text x="370" y="108" font-size="9" fill="currentColor" opacity="0.5" text-anchor="middle" transform="rotate(90,370,108)"></text>
+
+          <!-- 图差异示意 -->
+          <rect x="40" y="180" width="380" height="80" rx="8" fill="none" stroke="currentColor" stroke-opacity="0.12" stroke-dasharray="4 3"/>
+          <text x="230" y="210" font-size="11" font-weight="600" fill="currentColor" text-anchor="middle">两次执行 → 图结构 diff</text>
+          <text x="230" y="232" font-size="9" fill="currentColor" opacity=".55" text-anchor="middle">v1: locate(8) → modify(6) → verify(3) → commit(1)</text>
+          <text x="230" y="250" font-size="9" fill="currentColor" opacity=".55" text-anchor="middle">v2: <tspan fill="#f85149">search</tspan>(5) → locate(3) → modify(8) → verify(5) → commit(1)</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>P0 · BehaviorStateGraph · RuleSegmenter → WindowBuilder → AdjacentMerger</div>
+    <div>— · —</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     Page 8: P1 轨迹向量 (dark)
+     ══════════════════════════════════════════════════════════════ -->
+<section class="slide dark">
+  <div class="chrome">
+    <div>Behavior · P1 向量</div>
+    <div>Act III · 8 / 14</div>
+  </div>
+  <div class="frame" style="display:grid; gap:3vh; align-content:center">
+    <div>
+      <div class="kicker" data-anim>结构变了，但变好还是变坏？</div>
+      <h2 class="h-xl" data-anim>P1 · 10 维轨迹向量</h2>
+      <p class="lead" style="max-width:68vw; margin-top:1.5vh" data-anim>TrajectoryVector: 将一次执行映射到可比较的数值向量空间。D7 规范化 pipeline，禁止 whitening（保持语义轴可解释性）。</p>
+    </div>
+    <div class="grid-3" style="gap:2vw; margin-top:2vh" data-anim>
+      <!-- 分布类 -->
+      <div class="callout" style="border-color:rgba(88,166,255,.3); padding:1.5vh 1.2vw">
+        <span class="q-big" style="color:#58a6ff; font-size:1.1vw">分布类维度</span>
+        <div style="font-size:.85vw;opacity:.75;margin-top:1vh;line-height:1.6">
+          <div><code>tool_distribution</code> — 工具类别占比</div>
+          <div><code>state_distribution</code> — 状态分布</div>
+          <div style="opacity:.5;margin-top:4px;font-size:.7vw">Agent 花多少时间定位 vs 修改？</div>
+        </div>
+      </div>
+      <!-- 熵类 -->
+      <div class="callout" style="border-color:rgba(210,153,34,.3); padding:1.5vh 1.2vw">
+        <span class="q-big" style="color:#d29922; font-size:1.1vw">熵类维度</span>
+        <div style="font-size:.85vw;opacity:.75;margin-top:1vh;line-height:1.6">
+          <div><code>tool_entropy</code> — 工具序列混乱度</div>
+          <div><code>phase_entropy</code> — 阶段转换不可预测性</div>
+          <div><code>transition_entropy</code> — 状态转移随机性</div>
+        </div>
+      </div>
+      <!-- 模式类 -->
+      <div class="callout" style="border-color:rgba(63,185,80,.3); padding:1.5vh 1.2vw">
+        <span class="q-big" style="color:#3fb950; font-size:1.1vw">模式 + 稳定性</span>
+        <div style="font-size:.85vw;opacity:.75;margin-top:1vh;line-height:1.6">
+          <div><code>loop_ratio</code> — 循环占比</div>
+          <div><code>backtrack_ratio</code> — 回溯比例</div>
+          <div><code>burst_ratio</code> — 突发性</div>
+          <div><code>state_stability_score</code> — 两次执行余弦相似度</div>
+        </div>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:2vh" data-anim>
+      <span class="q-big">D7 规范化: bounded normalization → log compression → robust scaling。禁止 whitening —— 向量轴的语义可解释性是 P1 的核心价值。</span>
+      <span class="callout-src">TrajectoryVector { tool_entropy, phase_entropy, loop_ratio, burst_ratio, ... }</span>
+    </div>
+  </div>
+  <div class="foot">
+    <div>P1 · TrajectoryVector · D7 Normalization · No Whitening</div>
+    <div>— · —</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     Page 9: P2 行为耦合图 (hero light)
+     ══════════════════════════════════════════════════════════════ -->
+<section class="slide hero light">
+  <div class="chrome">
+    <div>Behavior · P2 耦合</div>
+    <div>Act III · 9 / 14</div>
+  </div>
+  <div class="frame" style="display:grid; gap:4vh; align-content:center; min-height:80vh">
+    <div>
+      <div class="kicker" data-anim>改了 A，B 和 C 会受影响吗？</div>
+      <h2 class="h-hero" data-anim style="font-size:6.5vw">P2 · 行为耦合图</h2>
+      <p class="lead" style="max-width:60vw; margin-top:1.5vh" data-anim>从 Agent 实际行为中自动推导 capability 之间的耦合关系。不是理论上的"耦合度"，而是真实的行为联动。</p>
+    </div>
+    <div data-anim style="display:flex; gap:3vw; align-items:center; justify-content:center; margin-top:3vh">
+      <!-- 公式 -->
+      <div style="flex:1; max-width:320px; background:rgba(31,26,20,.06); border-radius:10px; padding:2vh 2vw">
+        <div style="font-size:12px; font-family:var(--mono); color:var(--ink); opacity:.5; margin-bottom:1vh">D9 核心公式</div>
+        <div style="font-size:1.4vw; font-family:var(--mono); font-weight:700; color:var(--ink); text-align:center">
+          correlation = cochange × (1 + λ × similarity)
+        </div>
+        <div style="font-size:11px; color:var(--ink); opacity:.55; margin-top:1.5vh; line-height:1.5">
+          cochange: 3 层 log-saturated 证据<br>
+          similarity: P1 向量余弦相似度<br>
+          λ ∈ [0.2, 0.4]: 相似度调制因子
+        </div>
+      </div>
+      <!-- 耦合关系图 -->
+      <div style="flex:1.2; display:flex; align-items:center; justify-content:center">
+        <svg viewBox="0 0 320 220" style="width:100%; max-width:380px; max-height:30vh" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="p2a" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5 Z" fill="#d29922"/></marker>
+            <marker id="p2b" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5 Z" fill="#f85149"/></marker>
+          </defs>
+          <!-- Auth 中心 -->
+          <circle cx="160" cy="60" r="30" fill="rgba(88,166,255,.15)" stroke="#58a6ff" stroke-width="2.5"/>
+          <text x="160" y="55" font-size="10" font-weight="700" fill="#58a6ff" text-anchor="middle">Auth</text>
+          <text x="160" y="70" font-size="7" fill="currentColor" opacity=".4" text-anchor="middle">11 files</text>
+
+          <!-- Payment -->
+          <circle cx="70" cy="150" r="25" fill="rgba(210,153,34,.1)" stroke="#d29922" stroke-width="2"/>
+          <text x="70" y="148" font-size="9" font-weight="600" fill="#d29922" text-anchor="middle">Payment</text>
+          <line x1="148" y1="80" x2="82" y2="130" stroke="#d29922" stroke-width="1.5" marker-end="url(#p2a)"/>
+          <text x="102" y="108" font-size="7" fill="#d29922" opacity=".7">0.72</text>
+
+          <!-- Dashboard -->
+          <circle cx="260" cy="110" r="22" fill="rgba(63,185,80,.1)" stroke="#3fb950" stroke-width="2"/>
+          <text x="260" y="108" font-size="9" font-weight="600" fill="#3fb950" text-anchor="middle">Dashboard</text>
+          <line x1="178" y1="78" x2="246" y2="98" stroke="#3fb950" stroke-width="1.5"/>
+          <text x="220" y="80" font-size="7" fill="#3fb950" opacity=".7">0.58</text>
+
+          <!-- Inventory (高风险耦合) -->
+          <circle cx="260" cy="170" r="28" fill="rgba(248,81,73,.08)" stroke="#f85149" stroke-width="2.5"/>
+          <text x="260" y="165" font-size="9" font-weight="600" fill="#f85149" text-anchor="middle">Inventory</text>
+          <text x="260" y="180" font-size="7" fill="#f85149" opacity=".5" text-anchor="middle">⚠ HIGH</text>
+          <line x1="175" y1="82" x2="242" y2="152" stroke="#f85149" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#p2b)"/>
+          <text x="218" y="118" font-size="8" fill="#f85149" font-weight="600">0.91</text>
+
+          <!-- 图例 -->
+          <text x="10" y="210" font-size="6" fill="currentColor" opacity=".3">● 边权重 = correlation_score (D9)</text>
+        </svg>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:1vh" data-anim>
+      <span class="q-big">4 层存活过滤 (hard → purity → stability → top-K) 剪枝，只保留最稳定的耦合边。Auth 模块高频牵连 Payment + Dashboard + Inventory → 架构瓶颈，改它要小心。</span>
+      <span class="callout-src">CouplingBuilder · D9 Formula · 4-Layer Survivorship Filter</span>
+    </div>
+  </div>
+  <div class="foot">
+    <div>P2 · Behavior Coupling Graph · Cochange × Similarity</div>
+    <div>— · —</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     Page 10: 确定性核心 + LLM 辅助 (light)
+     ══════════════════════════════════════════════════════════════ -->
+<section class="slide light">
+  <div class="chrome">
+    <div>Design · 确定性 + LLM</div>
+    <div>Act III · 10 / 14</div>
+  </div>
+  <div class="frame grid-2-6-6" style="padding-top:5vh">
+    <div style="display:flex; flex-direction:column; justify-content:center; gap:2.5vh">
+      <div>
+        <div class="kicker" data-anim>核心分析完全确定，LLM 只在最后一公里</div>
+        <h2 class="h-xl" data-anim>确定性 + LLM</h2>
+      </div>
+      <div class="callout" data-anim>
+        <span class="q-big">P0 build_state_graph</span>
+        <p style="margin-top:.5vh;font-size:.9vw;opacity:.7">确定性规则引擎，零 LLM 参与</p>
+      </div>
+      <div class="callout" data-anim>
+        <span class="q-big">P1 build_vector</span>
+        <p style="margin-top:.5vh;font-size:.9vw;opacity:.7">确定性数值变换，零 LLM 参与</p>
+      </div>
+      <div class="callout" data-anim>
+        <span class="q-big">P2 CouplingBuilder::build_edges</span>
+        <p style="margin-top:.5vh;font-size:.9vw;opacity:.7">确定性公式计算，零 LLM 参与</p>
+      </div>
+    </div>
+    <div data-anim style="display:flex; flex-direction:column; justify-content:center; gap:2.5vh">
+      <div class="callout" style="border-color:var(--ink); padding:2.5vh 2vw">
+        <span class="q-big" style="font-size:1.3vw">LLM 只在 L6 呈现层介入</span>
+        <p style="margin-top:1.2vh;font-size:1vw;opacity:.72;line-height:1.5">
+          architecture-doc-generator 把 L1-L5 的结构化数据翻译成人类可读的自然语言。LLM 可选 —— 没有 API key，Paporot 照常输出完整的 JSON/MD/HTML 报告。
+        </p>
+        <p style="margin-top:1.2vh;font-size:.85vw;opacity:.5; font-style:italic">
+          "你不希望行为审计工具本身就有不确定性。" L1-L5 的结果每次跑出来一定一样 —— 同样的 Trace，同样的分析输出。
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Deterministic Core + LLM Augmentation · Only at L6 Presentation Layer</div>
+    <div>— · —</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     Page 11: 安全模型 (dark)
+     ══════════════════════════════════════════════════════════════ -->
+<section class="slide dark">
+  <div class="chrome">
+    <div>Security · 安全模型</div>
+    <div>Act III · 11 / 14</div>
+  </div>
+  <div class="frame" style="display:grid; gap:3vh; align-content:center">
+    <div>
+      <div class="kicker" data-anim>分析 AI Agent 的工具不能本身不安全</div>
+      <h2 class="h-xl" data-anim>三层安全模型</h2>
+    </div>
+    <div class="grid-3" style="gap:3vw; margin-top:3vh" data-anim>
+      <div class="callout" style="border-color:rgba(63,185,80,.4); padding:2vh 1.5vw">
+        <div style="font-size:2vw; font-weight:800; color:#3fb950; font-family:var(--serif-en)">1</div>
+        <span class="q-big" style="display:block; margin-top:1vh">WASM 沙盒硬隔离</span>
+        <p style="margin-top:.8vh;font-size:.85vw;opacity:.7">paporot-core.wasm 编译到 wasm32-wasip1。无法直接访问文件系统、网络、系统调用。</p>
+      </div>
+      <div class="callout" style="border-color:rgba(88,166,255,.4); padding:2vh 1.5vw">
+        <div style="font-size:2vw; font-weight:800; color:#58a6ff; font-family:var(--serif-en)">2</div>
+        <span class="q-big" style="display:block; margin-top:1vh">3 个受控 Host Func</span>
+        <p style="margin-top:.8vh;font-size:.85vw;opacity:.7">host_read_file · host_write_file · host_llm_call —— 宿主层做访问控制和审计。</p>
+      </div>
+      <div class="callout" style="border-color:rgba(210,153,34,.4); padding:2vh 1.5vw">
+        <div style="font-size:2vw; font-weight:800; color:#d29922; font-family:var(--serif-en)">3</div>
+        <span class="q-big" style="display:block; margin-top:1vh">零持久化沙盒内状态</span>
+        <p style="margin-top:.8vh;font-size:.85vw;opacity:.7">每次 paporot analyze 从零加载 wasm，不存在跨执行状态泄露。</p>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:2vh" data-anim>
+      <span class="q-big">如果你用一个不安全的工具去审计另一个 Agent，这本身就是一个笑话。</span>
+      <span class="callout-src">Zero Trust · WASM Isolation · Controlled I/O</span>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Security · WASM Hard Isolation + 3 Host Functions + Zero Persistent State</div>
+    <div>— · —</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     Page 12: Dashboard 实际演示 (hero dark)
+     ══════════════════════════════════════════════════════════════ -->
+<section class="slide hero dark">
+  <div class="chrome">
+    <div>Demo · 真实案例</div>
+    <div>Act IV · 12 / 14</div>
+  </div>
+  <div class="frame grid-2-6-6" style="gap:3vh; padding-top:2vh">
+    <!-- 左列：项目信息 -->
+    <div class="col" style="justify-content:center; gap:2.5vh">
+      <div>
+        <div class="kicker" data-anim>真实案例 · 全自动分析</div>
+        <h2 class="h-md" data-anim style="font-size:2.6vw; color:var(--paper)">家庭物资登记仓库</h2>
+        <p class="lead" style="margin-top:1.2vh; font-size:1.1vw; color:var(--paper); opacity:.8" data-anim>Vue 3 + Vite SPA · 6 Skill 全 PASS · 分析耗时 1 秒</p>
+      </div>
+      <div data-anim>
+        <div class="callout" style="padding:2vh 1.8vw">
+          <div style="display:flex; gap:3vw; margin-bottom:1vh">
+            <div><span style="font-size:2.4vw; font-weight:800; color:#3fb950">6/6</span><div style="font-size:9px; opacity:.45; margin-top:2px">Skill 通过</div></div>
+            <div><span style="font-size:2.4vw; font-weight:800; color:#f85149">HIGH</span><div style="font-size:9px; opacity:.45; margin-top:2px">整体风险</div></div>
+            <div><span style="font-size:2.4vw; font-weight:800; color:#58a6ff">6</span><div style="font-size:9px; opacity:.45; margin-top:2px">模块数</div></div>
+            <div><span style="font-size:2.4vw; font-weight:800; color:#58a6ff">6</span><div style="font-size:9px; opacity:.45; margin-top:2px">执行流</div></div>
+          </div>
+          <span class="callout-src" style="font-size:9px">paporot analyze → dashboard.html</span>
+        </div>
+      </div>
+      <div class="callout" style="font-size:.85vw; border-color:rgba(248,81,73,.3)" data-anim>
+        <span class="q-big" style="color:#f85149">HIGH 风险原因</span>
+        <p style="margin-top:.5vh;font-size:.78vw;opacity:.65">缺少身份认证、仅客户端验证、脆弱的错误处理</p>
+      </div>
+    </div>
+    <!-- 右列：Dashboard 渲染 -->
+    <div data-anim style="overflow:hidden; border-radius:10px; border:1px solid rgba(255,255,255,.1); height:78vh; overflow-y:auto; background:#0d1117; color:#c9d1d9; font-family:-apple-system,sans-serif; padding:14px 12px; font-size:9px; line-height:1.5">
+      <h3 style="font-size:13px; margin-bottom:6px; color:#58a6ff">Paporot 架构分析</h3>
+      <div style="font-size:8px; color:#8b949e; margin-bottom:10px">分析时间：2026-06-19</div>
+      <div style="background:#161b22; border-radius:8px; padding:12px; border:1px solid #30363d; margin-bottom:10px">
+        <div style="font-size:10px; font-weight:700; margin-bottom:6px">分析概览</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px">
+          <div style="padding:6px 8px; border-radius:6px; border:1px solid #30363d"><span style="font-size:13px; font-weight:700; color:#3fb950">6/6</span><div style="font-size:7px; color:#8b949e">技能通过</div></div>
+          <div style="padding:6px 8px; border-radius:6px; border:1px solid #30363d"><span style="font-size:13px; font-weight:700; color:#f85149">HIGH</span><div style="font-size:7px; color:#8b949e">风险等级</div></div>
+          <div style="padding:6px 8px; border-radius:6px; border:1px solid #30363d"><span style="font-size:13px; font-weight:700; color:#58a6ff">6</span><div style="font-size:7px; color:#8b949e">模块数</div></div>
+          <div style="padding:6px 8px; border-radius:6px; border:1px solid #30363d"><span style="font-size:13px; font-weight:700; color:#58a6ff">6</span><div style="font-size:7px; color:#8b949e">执行流</div></div>
+        </div>
+        <div style="font-size:8px; color:#c9d1d9; line-height:1.5; padding:6px 0; border-top:1px solid #30363d">家庭物资登记仓库 — Vue 3 SPA，管理物品、分类、有效期、库存盘点及过期告警。</div>
+      </div>
+      <div style="background:#161b22; border-radius:8px; padding:12px; border:1px solid #30363d; margin-bottom:10px">
+        <div style="font-size:10px; font-weight:700; margin-bottom:6px">技能结果</div>
+        <div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid rgba(48,54,61,.5); font-size:8px"><span style="color:#58a6ff;font-family:monospace">repository-understanding</span><span style="color:#3fb950;font-weight:700">PASS</span></div>
+        <div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid rgba(48,54,61,.5); font-size:8px"><span style="color:#58a6ff;font-family:monospace">module-discovery</span><span style="color:#3fb950;font-weight:700">PASS</span></div>
+        <div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid rgba(48,54,61,.5); font-size:8px"><span style="color:#58a6ff;font-family:monospace">dependency-analysis</span><span style="color:#3fb950;font-weight:700">PASS</span></div>
+        <div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid rgba(48,54,61,.5); font-size:8px"><span style="color:#58a6ff;font-family:monospace">runtime-flow-analysis</span><span style="color:#3fb950;font-weight:700">PASS</span></div>
+        <div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid rgba(48,54,61,.5); font-size:8px"><span style="color:#58a6ff;font-family:monospace">behavior-boundary</span><span style="color:#3fb950;font-weight:700">PASS</span></div>
+        <div style="display:flex; justify-content:space-between; padding:3px 0; font-size:8px"><span style="color:#58a6ff;font-family:monospace">architecture-doc-generator</span><span style="color:#3fb950;font-weight:700">PASS</span></div>
+      </div>
+      <div style="background:#161b22; border-radius:8px; padding:12px; border:1px solid #30363d; margin-bottom:10px">
+        <div style="font-size:10px; font-weight:700; margin-bottom:6px">发现模块 (6)</div>
+        <div style="display:flex; gap:4px; flex-wrap:wrap; font-size:7px">
+          <span style="padding:2px 6px; border-radius:6px; background:rgba(63,185,80,.12); color:#3fb950; border:1px solid rgba(63,185,80,.2)">Dashboard</span>
+          <span style="padding:2px 6px; border-radius:6px; background:rgba(63,185,80,.12); color:#3fb950; border:1px solid rgba(63,185,80,.2)">Item Mgmt</span>
+          <span style="padding:2px 6px; border-radius:6px; background:rgba(63,185,80,.12); color:#3fb950; border:1px solid rgba(63,185,80,.2)">Categories</span>
+          <span style="padding:2px 6px; border-radius:6px; background:rgba(63,185,80,.12); color:#3fb950; border:1px solid rgba(63,185,80,.2)">Expiry</span>
+          <span style="padding:2px 6px; border-radius:6px; background:rgba(63,185,80,.12); color:#3fb950; border:1px solid rgba(63,185,80,.2)">Inventory</span>
+          <span style="padding:2px 6px; border-radius:6px; background:rgba(88,166,255,.12); color:#58a6ff; border:1px solid rgba(88,166,255,.2)">Core App</span>
+        </div>
+      </div>
+      <div style="background:#161b22; border-radius:8px; padding:12px; border:1px solid #30363d; margin-bottom:10px">
+        <div style="font-size:10px; font-weight:700; margin-bottom:6px">执行流 (6)</div>
+        <div style="font-size:7px; display:flex; flex-direction:column; gap:2px">
+          <div style="display:flex;justify-content:space-between"><span>Dashboard Load</span><span style="color:#3fb950;font-weight:700">LOW</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Add Item</span><span style="color:#d29922;font-weight:700">MED</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Edit Item</span><span style="color:#d29922;font-weight:700">MED</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Category Mgmt</span><span style="color:#3fb950;font-weight:700">LOW</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Inventory Check</span><span style="color:#f85149;font-weight:700">HIGH</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Outbound Records</span><span style="color:#f85149;font-weight:700">HIGH</span></div>
+        </div>
+      </div>
+      <div style="font-size:7px; color:#8b949e; text-align:center; border-top:1px solid #30363d; padding-top:6px">Paporot Architecture Analysis Dashboard · 全自动生成</div>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Demo · Family Inventory Warehouse · Actual Dashboard Rendering</div>
+    <div>— · —</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     Page 13: 怎么用 (light)
+     ══════════════════════════════════════════════════════════════ -->
+<section class="slide light">
+  <div class="chrome">
+    <div>Quick Start · 快速开始</div>
+    <div>Act IV · 13 / 14</div>
+  </div>
+  <div class="frame" style="display:grid; gap:3vh; align-content:center">
+    <div>
+      <div class="kicker" data-anim>三步，一分钟上手</div>
+      <h2 class="h-xl" data-anim>编译 & 使用</h2>
+    </div>
+    <div class="col" style="gap:2vh" data-anim>
+      <div class="callout">
+        <span class="q-big">编译</span>
+        <span style="font-family:var(--mono);font-size:11px;display:block;margin-top:1vh;line-height:1.6">
+          cargo build -p paporot-core --target wasm32-wasip1 --release<br>
+          cargo build --release
+        </span>
+      </div>
+      <div class="callout">
+        <span class="q-big">初始化 & 分析</span>
+        <span style="font-family:var(--mono);font-size:11px;display:block;margin-top:1vh;line-height:1.6">
+          Paporot init<br>
+          Paporot analyze --api-key &lt;key&gt;
+        </span>
+      </div>
+      <div class="callout">
+        <span class="q-big">16 个子命令，完全模块化</span>
+        <span style="font-family:var(--mono);font-size:10px;display:block;margin-top:1vh;line-height:1.6">
+          snapshot · diff · trace · trajectory · state · coupling · analyze · review · risk · graph · ...
+        </span>
+      </div>
+    </div>
+    <p style="font-size:.85vw; opacity:.55; margin-top:1vh" data-anim>前置：Rust 1.96+ · wasm32-wasip1 target · LLM API Key (可选)</p>
+  </div>
+  <div class="foot">
+    <div>Build & Run · Cargo + wasmtime · MIT License</div>
+    <div>— · —</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     Page 14: 收束 (dark)
+     ══════════════════════════════════════════════════════════════ -->
+<section class="slide dark">
+  <div class="chrome">
+    <div>Closing · 总结</div>
+    <div>Vol.01 · 14 / 14</div>
+  </div>
+  <div class="frame" style="display:grid; gap:3vh; align-content:center; min-height:80vh">
+    <div class="kicker" data-anim>AI Agent 写入了一堆代码，你除了看 diff，怎么知道行为变好还是变坏？</div>
+    <h2 class="h-hero" data-anim style="font-size:6vw">Paporot 的答案</h2>
+    <div class="pipeline-section" data-anim style="margin-top:3vh">
+      <div class="pipeline" data-cols="3">
+        <div class="step">
+          <div class="step-nb">P0</div>
+          <div class="step-title">结构层</div>
+          <div class="step-desc">Agent 的行为结构变了<br>状态节点多了少了<br>转移路径改了</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">P1</div>
+          <div class="step-title">几何层</div>
+          <div class="step-desc">变化是改善还是退化<br>entropy 升了还是降了<br>stability 变好还是变糟</div>
+        </div>
+        <div class="step">
+          <div class="step-nb">P2</div>
+          <div class="step-title">网络层</div>
+          <div class="step-desc">改了 A，B 和 C 受影响吗<br>capability 间的行为耦合<br>动一个会不会牵动一片</div>
+        </div>
+      </div>
+    </div>
+    <p class="lead" style="max-width:62vw; margin-top:3vh" data-anim>
+      全自动，一行命令。WASM 沙盒内运行。确定性核心 + LLM 辅助。让 AI 生成软件的行为变化透明可见。
+    </p>
+    <div class="meta-row" style="margin-top:2vh" data-anim>
+      <span>Rust</span><span>·</span><span>wasmtime</span><span>·</span><span>WASM</span><span>·</span><span>MIT</span><span>·</span><span>开源</span>
+    </div>
+  </div>
+  <div class="foot">
+    <div>Paporot · AI Generated Code Behavior Auditing Pipeline</div>
+    <div>— 2026 —</div>
+  </div>
+</section>
+
+</div>
+
+<div id="nav"></div>
+
+<script>
+/* =============== WebGL 双背景 ===============
+   深色页：Holographic Dispersion（全息色散 · 钛金暗流）—— 彩虹微扰、鼠标径向涟漪
+   浅色页：Spiral Vortex（旋转涡流 · 银色珍珠）—— domain-warp 流动、无中心
+   修改风格请参考 references/webgl-backgrounds.md
+*/
+const VS = `attribute vec2 position;void main(){gl_Position=vec4(position,0.0,1.0);}`;
+
+const FS_DARK = `precision highp float;
+uniform vec2 u_resolution;uniform float u_time;uniform vec2 u_mouse;
+vec3 palette(float t,vec3 a,vec3 b,vec3 c,vec3 d){return a+b*cos(6.28318*(c*t+d));}
+void main(){
+  vec2 uv=gl_FragCoord.xy/u_resolution.xy;
+  vec2 p=uv*2.0-1.0;p.x*=u_resolution.x/u_resolution.y;
+  vec2 m=u_mouse*2.0-1.0;m.x*=u_resolution.x/u_resolution.y;
+  float md=length(p-m);
+  float mr=sin(md*15.0-u_time*4.0)*exp(-md*3.0);p+=mr*0.08;
+  vec2 p0=p;
+  for(float i=1.0;i<4.0;i++){
+    p.x+=0.1/i*sin(i*3.0*p.y+u_time*0.4)+0.05;
+    p.y+=0.1/i*cos(i*2.0*p.x+u_time*0.3)-0.05;
+  }
+  float r=length(p);float ang=atan(p.y,p.x);
+  vec3 a=vec3(0.12,0.12,0.13);
+  vec3 b=vec3(0.03,0.04,0.05);
+  vec3 c=vec3(1.0,1.0,1.0);
+  vec3 d=vec3(0.1,0.2,0.4);
+  vec3 col=palette(r*1.5+p0.x*0.5+u_time*0.1,a,b,c,d);
+  float disp=sin(r*25.0-u_time*1.5+ang*2.0)*0.5+0.5;
+  col+=vec3(disp*0.015,disp*0.01,disp*0.02);
+  float hi=pow(sin(p.x*4.0+p.y*3.0+u_time)*0.5+0.5,8.0);
+  col+=hi*0.08;
+  vec3 base=vec3(0.05,0.05,0.06);
+  col=mix(base,col,0.85);
+  gl_FragColor=vec4(col,1.0);
+}`;
+
+const FS_LIGHT = `precision highp float;
+uniform vec2 u_resolution;uniform float u_time;uniform vec2 u_mouse;
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float noise(vec2 p){
+  vec2 i=floor(p),f=fract(p);
+  float a=hash(i),b=hash(i+vec2(1,0));
+  float c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));
+  vec2 u=f*f*(3.0-2.0*f);
+  return mix(a,b,u.x)+(c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y;
+}
+float fbm(vec2 p){
+  float v=0.0,a=0.5;
+  mat2 m=mat2(0.80,0.60,-0.60,0.80);
+  for(int i=0;i<5;i++){v+=a*noise(p);p=m*p*2.02;a*=0.5;}
+  return v;
+}
+void main(){
+  vec2 uv=gl_FragCoord.xy/u_resolution.xy;
+  vec2 p=uv;p.x*=u_resolution.x/u_resolution.y;
+  vec2 m=u_mouse;m.x*=u_resolution.x/u_resolution.y;
+  vec2 md=p-m;float dl=length(md);
+  p+=normalize(md+vec2(0.0001))*exp(-dl*5.0)*0.03;
+  vec2 q=vec2(fbm(p*1.8+u_time*0.07),fbm(p*1.8+vec2(5.2,1.3)+u_time*0.06));
+  vec2 r=vec2(fbm(p*2.0+q*1.3+vec2(1.7,9.2)+u_time*0.05),
+              fbm(p*2.0+q*1.3+vec2(8.3,2.8)+u_time*0.04));
+  float f=fbm(p*2.2+r*1.5);
+  vec3 silverDark=vec3(0.86,0.85,0.84);
+  vec3 paper=vec3(0.955,0.945,0.925);
+  vec3 col=mix(silverDark,paper,f);
+  float ph=r.x*2.2+u_time*0.35;
+  col+=vec3(0.78,0.62,0.92)*sin(ph)*0.055;
+  col+=vec3(0.55,0.72,0.95)*sin(ph*0.8+2.0)*0.05;
+  float hl=smoothstep(0.48,0.92,f);
+  col+=hl*0.06;
+  gl_FragColor=vec4(col,1.0);
+}`;
+
+const mouse={x:0.5,y:0.5};
+addEventListener('mousemove',e=>{mouse.x=e.clientX/innerWidth;mouse.y=e.clientY/innerHeight});
+
+function bootGL(canvasId, fsSrc){
+  const canvas=document.getElementById(canvasId);
+  const gl=canvas.getContext('webgl',{alpha:false,antialias:true});
+  if(!gl) return ()=>false;
+  const mk=(t,s)=>{const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);return sh};
+  const prog=gl.createProgram();
+  gl.attachShader(prog,mk(gl.VERTEX_SHADER,VS));
+  gl.attachShader(prog,mk(gl.FRAGMENT_SHADER,fsSrc));
+  gl.linkProgram(prog);gl.useProgram(prog);
+  const buf=gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
+  const pos=gl.getAttribLocation(prog,'position');
+  gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
+  const lRes=gl.getUniformLocation(prog,'u_resolution');
+  const lT=gl.getUniformLocation(prog,'u_time');
+  const lM=gl.getUniformLocation(prog,'u_mouse');
+  const resize=()=>{
+    const d=Math.min(window.devicePixelRatio||1,2);
+    canvas.width=innerWidth*d;canvas.height=innerHeight*d;
+    gl.viewport(0,0,canvas.width,canvas.height);
+  };
+  addEventListener('resize',resize);resize();
+  return (tSec)=>{
+    gl.uniform2f(lRes,canvas.width,canvas.height);
+    gl.uniform1f(lT,tSec);
+    gl.uniform2f(lM,mouse.x,1-mouse.y);
+    gl.drawArrays(gl.TRIANGLES,0,6);
+    return true;
+  };
+}
+let drawDark=null, drawLight=null, glRAF=0, glT0=Date.now();
+function startGL(){
+  if(window.__lowPowerMode || glRAF) return;
+  if(!drawDark) drawDark=bootGL('bg-dark',FS_DARK);
+  if(!drawLight) drawLight=bootGL('bg-light',FS_LIGHT);
+  glT0=Date.now();
+  function loop(){
+    if(window.__lowPowerMode){glRAF=0;return;}
+    const t=(Date.now()-glT0)/1000;
+    drawDark(t);drawLight(t);
+    glRAF=requestAnimationFrame(loop);
+  }
+  glRAF=requestAnimationFrame(loop);
+}
+function stopGL(){
+  if(glRAF) cancelAnimationFrame(glRAF);
+  glRAF=0;
+}
+startGL();
+addEventListener('ppt-low-power-change', e=>{e.detail.on ? stopGL() : startGL();});
+
+// =============== 导航（翻页 / 圆点 / 键盘 / 滚轮 / 触屏） ===============
+const deck=document.getElementById('deck');
+const slides=deck.querySelectorAll('.slide');
+const nav=document.getElementById('nav');
+let idx=0,total=slides.length,lock=false;
+
+// 关键：矫正 deck 宽度为 total * 100vw，否则翻页会错位
+deck.style.width=(total*100)+'vw';
+
+slides.forEach((s,i)=>{
+  const b=document.createElement('button');
+  b.className='dot';b.dataset.i=i;b.setAttribute('aria-label','Page '+(i+1));
+  b.onclick=()=>go(i);
+  nav.appendChild(b);
+});
+
+function go(n){
+  if(lock)return;
+  idx=Math.max(0,Math.min(total-1,n));
+  window.__currentSlideIndex = idx;
+  deck.style.transform=`translateX(${-idx*100}vw)`;
+  nav.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===idx));
+  /* 主题切换：优先读 data-theme，其次从 class（light/dark）推断 */
+  const el=slides[idx];
+  const th=el.dataset.theme || (el.classList.contains('light')?'light':(el.classList.contains('dark')?'dark':'dark'));
+  document.body.classList.toggle('light-bg',th==='light');
+  /* 动效：翻页过渡中段触发当前页的入场动画（由 motion-boot 注册） */
+  if(window.__playSlide) setTimeout(()=>window.__playSlide(idx), 450);
+  lock=true;setTimeout(()=>lock=false,700);
+}
+
+/* =============== ESC 索引视图 =============== */
+let overviewOn=false;
+const ov=document.createElement('div');
+ov.id='overview';
+ov.style.cssText='position:fixed;inset:0;z-index:100;background:rgba(var(--ink-rgb),.92);backdrop-filter:blur(12px);display:none;overflow-y:auto;padding:4vh 4vw';
+document.body.appendChild(ov);
+
+function buildOverview(){
+  ov.innerHTML='';
+  const grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:2vh 1.6vw;max-width:90vw;margin:0 auto';
+  slides.forEach((s,i)=>{
+    const card=document.createElement('div');
+    card.style.cssText='cursor:pointer;border-radius:6px;overflow:hidden;border:2px solid '+(i===idx?'rgba(var(--paper-rgb),.8)':'rgba(var(--paper-rgb),.15)')+';transition:border-color .2s';
+    card.onmouseenter=()=>card.style.borderColor='rgba(var(--paper-rgb),.6)';
+    card.onmouseleave=()=>card.style.borderColor=i===idx?'rgba(var(--paper-rgb),.8)':'rgba(var(--paper-rgb),.15)';
+    const wrap=document.createElement('div');
+    wrap.style.cssText='width:100%;aspect-ratio:16/9;overflow:hidden;position:relative;pointer-events:none;background:'+(s.classList.contains('light')?'var(--paper)':'var(--ink)');
+    const clone=s.cloneNode(true);
+    clone.style.cssText='width:100vw;height:100vh;transform:scale('+(1/4.5)+');transform-origin:top left;position:absolute;top:0;left:0;pointer-events:none';
+    wrap.appendChild(clone);
+    const label=document.createElement('div');
+    label.style.cssText='padding:6px 10px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--paper);opacity:.7';
+    label.textContent=(i+1)+' / '+total;
+    card.appendChild(wrap);
+    card.appendChild(label);
+    card.onclick=()=>{toggleOverview();go(i)};
+    grid.appendChild(card);
+  });
+  ov.appendChild(grid);
+}
+
+function toggleOverview(){
+  overviewOn=!overviewOn;
+  if(overviewOn){buildOverview();ov.style.display='block';}
+  else{ov.style.display='none';}
+}
+
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'){e.preventDefault();toggleOverview();return;}
+  if(e.key && e.key.toLowerCase()==='b' && !e.metaKey && !e.ctrlKey && !e.altKey){
+    e.preventDefault();
+    window.__setLowPowerMode(!window.__lowPowerMode);
+    return;
+  }
+  if(overviewOn)return;
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '||e.key==='ArrowDown'){
+    if(window.__pipeAdvance && window.__pipeAdvance()) return;
+    go(idx+1);
+    return;
+  }
+  if(e.key==='ArrowLeft'||e.key==='PageUp'||e.key==='ArrowUp')go(idx-1);
+  if(e.key==='Home')go(0);
+  if(e.key==='End')go(total-1);
+});
+
+let wheelTO=null,wheelAcc=0;
+addEventListener('wheel',e=>{
+  wheelAcc+=e.deltaY+e.deltaX;
+  if(Math.abs(wheelAcc)>50){
+    if(wheelAcc>0 && window.__pipeAdvance && window.__pipeAdvance()){
+      wheelAcc=0;
+    }else{
+      go(idx+(wheelAcc>0?1:-1));wheelAcc=0;
+    }
+  }
+  clearTimeout(wheelTO);wheelTO=setTimeout(()=>wheelAcc=0,150);
+},{passive:true});
+
+let tx=0,ty=0;
+addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
+addEventListener('touchend',e=>{
+  const dx=(e.changedTouches[0].clientX-tx);
+  const dy=(e.changedTouches[0].clientY-ty);
+  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)){
+    if(dx<0 && window.__pipeAdvance && window.__pipeAdvance()) return;
+    go(idx+(dx<0?1:-1));
+  }
+},{passive:true});
+
+go(0);
+</script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+
+<!-- ============ Motion One 动效引擎（本地优先,CDN 兜底） ============
+     加载策略:先 ./assets/motion.min.js(本地,离线可用),失败 fallback 到 jsDelivr CDN
+     加载完成后挂 window.__playSlide / window.__pipeAdvance,
+     导航脚本会在翻页中段调用 __playSlide(idx),键盘/滚轮/触屏会在翻页前调用 __pipeAdvance()
+     双双失败时会兜底把所有 [data-anim] 设为可见,不让动效破坏阅读
+-->
+<script type="module">
+let motion;
+try {
+  motion = await import('./assets/motion.min.js');
+} catch(e1) {
+  try {
+    motion = await import('https://cdn.jsdelivr.net/npm/motion@11.11.17/+esm');
+  } catch(e2) {
+    console.warn('[motion] local + CDN both failed, disabling animations', e1, e2);
+    document.querySelectorAll('[data-anim]').forEach(el=>{el.style.opacity='1';el.style.transform='none'});
+    document.querySelectorAll('[data-animate="pipeline"] [data-anim]').forEach(el=>el.style.opacity='1');
+  }
+}
+
+if(motion){
+  const { animate, stagger } = motion;
+  document.body.classList.add('motion-ready');
+  const EASE = [.22, 1, .36, 1];
+  const slides = [...document.querySelectorAll('.slide')];
+  let pipeStep = -1;
+  let lastIdx = -1;
+
+  function resetAnims(slide){
+    slide.querySelectorAll('[data-anim]').forEach(el=>{
+      el.style.opacity='';
+      el.style.transform='';
+    });
+  }
+
+  function revealStatic(slide){
+    resetAnims(slide);
+    document.getAnimations?.().forEach(a=>a.cancel());
+    slide.querySelectorAll('[data-anim]').forEach(el=>{
+      el.style.opacity='1';
+      el.style.transform='none';
+    });
+  }
+
+  function playSlide(i){
+    const slide = slides[i];
+    if(!slide) return;
+    lastIdx = i;
+    const recipe = slide.dataset.animate || (slide.classList.contains('hero') ? 'hero' : 'cascade');
+
+    if(window.__lowPowerMode){
+      revealStatic(slide);
+      return;
+    }
+
+    if(recipe === 'pipeline'){
+      pipeStep = -1;
+      slide.querySelectorAll('[data-anim]').forEach(el=>{
+        el.style.opacity='0.15';
+        el.style.transform='none';
+      });
+      return;
+    }
+
+    resetAnims(slide);
+    const all = [...slide.querySelectorAll('[data-anim]')];
+    if(!all.length) return;
+
+    if(recipe === 'directional'){
+      const lefts  = all.filter(el=>el.dataset.anim==='left');
+      const divs   = all.filter(el=>el.dataset.anim==='divider');
+      const rights = all.filter(el=>el.dataset.anim==='right');
+      const others = all.filter(el=>!['left','right','divider'].includes(el.dataset.anim));
+      if(others.length) animate(others, {opacity:[0,1], y:[12,0]}, {duration:.6, delay:stagger(.1, {start:.15}), easing:EASE});
+      if(lefts.length)  animate(lefts,  {opacity:[0,1], x:[-24,0]}, {duration:.8, delay:.35, easing:EASE});
+      if(divs.length)   animate(divs,   {opacity:[0,.25]},          {duration:.5, delay:.9});
+      if(rights.length) animate(rights, {opacity:[0,1], x:[24,0]},  {duration:.8, delay:1.0, easing:EASE});
+      return;
+    }
+
+    if(recipe === 'quote'){
+      const lines = all.filter(el=>el.dataset.anim==='line');
+      const others = all.filter(el=>el.dataset.anim!=='line');
+      if(others.length) animate(others, {opacity:[0,1], y:[8,0]},    {duration:.6, delay:stagger(.12, {start:.2}), easing:EASE});
+      if(lines.length)  animate(lines,  {opacity:[.35,1], y:[10,0]}, {duration:.8, delay:stagger(.55, {start:.5}), easing:EASE});
+      return;
+    }
+
+    if(recipe === 'hero'){
+      animate(all, {opacity:[0,1], y:[14,0]}, {duration:.9, delay:stagger(.16, {start:.2}), easing:EASE});
+      return;
+    }
+
+    // default: cascade
+    animate(all, {opacity:[0,1], y:[16,0]}, {duration:.75, delay:stagger(.1, {start:.15}), easing:EASE});
+  }
+
+  function pipeAdvance(){
+    if(window.__lowPowerMode) return false;
+    const slide = slides[lastIdx];
+    if(!slide || slide.dataset.animate !== 'pipeline') return false;
+    const steps  = [...slide.querySelectorAll('[data-anim="step"]')];
+    const arrows = [...slide.querySelectorAll('[data-anim="arrow"]')];
+    if(pipeStep >= steps.length - 1) return false;
+    pipeStep++;
+    animate(steps[pipeStep], {opacity:[0.15,1], y:[8,0]}, {duration:.5, easing:EASE});
+    if(pipeStep > 0 && arrows[pipeStep-1]){
+      animate(arrows[pipeStep-1], {opacity:[0.15,.7]}, {duration:.3, delay:.15});
+    }
+    return true;
+  }
+
+  window.__playSlide = playSlide;
+  window.__pipeAdvance = pipeAdvance;
+
+  // 首屏:go(0) 已跑过(同步),没来得及触发动效 → 这里补一下
+  playSlide(0);
+}
+</script>
+</body>
+</html>

@@ -13,7 +13,7 @@ schema = "runtime_flow_analysis_output"
 
 [llm_calls]
 max_calls = 2
-preferred_model = "deepseek-pro"
+preferred_model = "deepseek-v4-pro"
 
 [dependencies]
 uses_outputs_from = ["dependency-analysis"]

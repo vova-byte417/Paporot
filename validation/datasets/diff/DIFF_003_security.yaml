@@ -1,0 +1,28 @@
+id: DIFF_003
+name: "Diff: security functions addition"
+category: diff
+description: "验证 security 函数新增的 diff 计数"
+
+input:
+  type: files
+  before: "fixtures/before/empty_security.rs"
+  after: "fixtures/after/add_security_fns.rs"
+
+expected:
+  capabilities:
+    - name: "hash_password"
+      status: new
+    - name: "generate_token"
+      status: new
+    - name: "verify_token"
+      status: new
+  diff:
+    added_count: 3
+    removed_count: 0
+    modified_count: 0
+
+metadata:
+  difficulty: easy
+  tags: [diff, security]
+  human_verified: true
+  auto_generated: false

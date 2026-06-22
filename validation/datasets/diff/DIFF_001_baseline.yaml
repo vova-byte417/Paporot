@@ -1,0 +1,30 @@
+id: DIFF_001
+name: "Baseline diff: add vs remove"
+category: diff
+description: "两版本间 capability 新增和移除的 diff 对比"
+
+input:
+  type: files
+  before: "fixtures/before/simple_no_api.rs"
+  after: "fixtures/after/add_health_and_auth.rs"
+
+expected:
+  capabilities:
+    - name: "health_check"
+      status: new
+    - name: "login"
+      status: new
+    - name: "Token"
+      status: new
+    - name: "AuthError"
+      status: new
+  diff:
+    added_count: 4
+    removed_count: 0
+    modified_count: 0
+
+metadata:
+  difficulty: easy
+  tags: [diff]
+  human_verified: true
+  auto_generated: false

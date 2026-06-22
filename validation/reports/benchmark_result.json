@@ -1,0 +1,218 @@
+[
+  {
+    "suite_name": "capability",
+    "total": 6,
+    "pass": 2,
+    "semantic_pass": 4,
+    "fail": 0,
+    "pass_rate": 100.0,
+    "cases": [
+      {
+        "case_id": "CAP_001",
+        "name": "Add health endpoint and auth module",
+        "category": "capability",
+        "verdict": {
+          "type": "semanticpass",
+          "confidence": 1.0,
+          "reason": "expected 'health_check' ≈ actual 'health_check' (1.00) | expected 'login' ≈ actual 'login' (1.00) | expected 'Token' ≈ actual 'Token' (1.00) | expected 'AuthError' ≈ actual 'AuthError' (1.00)"
+        },
+        "expected_summary": "4 capability expects",
+        "actual_summary": "5 caps (5 new, 0 removed, 0 modified)",
+        "duration_ms": 72
+      },
+      {
+        "case_id": "CAP_002",
+        "name": "Remove deprecated function",
+        "category": "capability",
+        "verdict": {
+          "type": "semanticpass",
+          "confidence": 1.0,
+          "reason": "expected 'health_check' ≈ actual 'health_check' (1.00) | expected 'login' ≈ actual 'login' (1.00) | expected 'Token' ≈ actual 'Token' (1.00) | expected 'AuthError' ≈ actual 'AuthError' (1.00)"
+        },
+        "expected_summary": "4 capability expects",
+        "actual_summary": "5 caps (0 new, 3 removed, 0 modified)",
+        "duration_ms": 66
+      },
+      {
+        "case_id": "CAP_003",
+        "name": "Add MFA function (signature change)",
+        "category": "capability",
+        "verdict": {
+          "type": "semanticpass",
+          "confidence": 1.0,
+          "reason": "expected 'login_with_mfa' ≈ actual 'login_with_mfa' (1.00)"
+        },
+        "expected_summary": "1 capability expects",
+        "actual_summary": "4 caps (1 new, 2 removed, 0 modified)",
+        "duration_ms": 64
+      },
+      {
+        "case_id": "CAP_004",
+        "name": "Add security functions (crypto + auth)",
+        "category": "capability",
+        "verdict": {
+          "type": "pass"
+        },
+        "expected_summary": "3 capability expects",
+        "actual_summary": "3 caps (3 new, 0 removed, 0 modified)",
+        "duration_ms": 62
+      },
+      {
+        "case_id": "CAP_005",
+        "name": "Add User struct + Role enum + methods",
+        "category": "capability",
+        "verdict": {
+          "type": "pass"
+        },
+        "expected_summary": "4 capability expects",
+        "actual_summary": "4 caps (4 new, 0 removed, 0 modified)",
+        "duration_ms": 64
+      },
+      {
+        "case_id": "CAP_006",
+        "name": "Add HTTP route handler function",
+        "category": "capability",
+        "verdict": {
+          "type": "semanticpass",
+          "confidence": 1.0,
+          "reason": "expected 'handle_get_users' ≈ actual 'handle_get_users' (1.00)"
+        },
+        "expected_summary": "1 capability expects",
+        "actual_summary": "2 caps (2 new, 0 removed, 0 modified)",
+        "duration_ms": 65
+      }
+    ],
+    "duration_ms": 395
+  },
+  {
+    "suite_name": "diff",
+    "total": 6,
+    "pass": 2,
+    "semantic_pass": 4,
+    "fail": 0,
+    "pass_rate": 100.0,
+    "cases": [
+      {
+        "case_id": "DIFF_001",
+        "name": "Baseline diff: add vs remove",
+        "category": "diff",
+        "verdict": {
+          "type": "semanticpass",
+          "confidence": 1.0,
+          "reason": "expected 'health_check' ≈ actual 'health_check' (1.00) | expected 'login' ≈ actual 'login' (1.00) | expected 'Token' ≈ actual 'Token' (1.00) | expected 'AuthError' ≈ actual 'AuthError' (1.00)"
+        },
+        "expected_summary": "4 capability expects",
+        "actual_summary": "5 caps (5 new, 0 removed, 0 modified)",
+        "duration_ms": 58
+      },
+      {
+        "case_id": "DIFF_002",
+        "name": "Reverse diff: remove vs add",
+        "category": "diff",
+        "verdict": {
+          "type": "semanticpass",
+          "confidence": 1.0,
+          "reason": "expected 'health_check' ≈ actual 'health_check' (1.00) | expected 'login' ≈ actual 'login' (1.00) | expected 'Token' ≈ actual 'Token' (1.00) | expected 'AuthError' ≈ actual 'AuthError' (1.00)"
+        },
+        "expected_summary": "4 capability expects",
+        "actual_summary": "5 caps (0 new, 3 removed, 0 modified)",
+        "duration_ms": 60
+      },
+      {
+        "case_id": "DIFF_003",
+        "name": "Diff: security functions addition",
+        "category": "diff",
+        "verdict": {
+          "type": "pass"
+        },
+        "expected_summary": "3 capability expects",
+        "actual_summary": "3 caps (3 new, 0 removed, 0 modified)",
+        "duration_ms": 59
+      },
+      {
+        "case_id": "DIFF_004",
+        "name": "Diff: user struct and enum addition",
+        "category": "diff",
+        "verdict": {
+          "type": "pass"
+        },
+        "expected_summary": "4 capability expects",
+        "actual_summary": "4 caps (4 new, 0 removed, 0 modified)",
+        "duration_ms": 62
+      },
+      {
+        "case_id": "DIFF_005",
+        "name": "Diff: MFA function addition",
+        "category": "diff",
+        "verdict": {
+          "type": "semanticpass",
+          "confidence": 1.0,
+          "reason": "expected 'login_with_mfa' ≈ actual 'login_with_mfa' (1.00)"
+        },
+        "expected_summary": "1 capability expects",
+        "actual_summary": "4 caps (1 new, 2 removed, 0 modified)",
+        "duration_ms": 57
+      },
+      {
+        "case_id": "DIFF_006",
+        "name": "Diff: full pipeline struct + enum + fn",
+        "category": "diff",
+        "verdict": {
+          "type": "semanticpass",
+          "confidence": 1.0,
+          "reason": "expected 'User' ≈ actual 'User' (1.00) | expected 'Role' ≈ actual 'Role' (1.00) | expected 'create_user' ≈ actual 'create_user' (1.00) | expected 'promote_to_admin' ≈ actual 'promote_to_admin' (1.00)"
+        },
+        "expected_summary": "4 capability expects",
+        "actual_summary": "12 caps (4 new, 5 removed, 0 modified)",
+        "duration_ms": 63
+      }
+    ],
+    "duration_ms": 362
+  },
+  {
+    "suite_name": "regression",
+    "total": 3,
+    "pass": 2,
+    "semantic_pass": 1,
+    "fail": 0,
+    "pass_rate": 100.0,
+    "cases": [
+      {
+        "case_id": "REG_001",
+        "name": "Regression: function count explosion",
+        "category": "regression",
+        "verdict": {
+          "type": "pass"
+        },
+        "expected_summary": "4 capability expects",
+        "actual_summary": "4 caps (4 new, 0 removed, 0 modified)",
+        "duration_ms": 79
+      },
+      {
+        "case_id": "REG_002",
+        "name": "Regression: verify no degradation on single add",
+        "category": "regression",
+        "verdict": {
+          "type": "semanticpass",
+          "confidence": 1.0,
+          "reason": "expected 'health_check' ≈ actual 'health_check' (1.00) | expected 'login' ≈ actual 'login' (1.00) | expected 'Token' ≈ actual 'Token' (1.00) | expected 'AuthError' ≈ actual 'AuthError' (1.00)"
+        },
+        "expected_summary": "4 capability expects",
+        "actual_summary": "9 caps (8 new, 1 removed, 0 modified)",
+        "duration_ms": 74
+      },
+      {
+        "case_id": "REG_003",
+        "name": "Regression: security function add (no degrade)",
+        "category": "regression",
+        "verdict": {
+          "type": "pass"
+        },
+        "expected_summary": "3 capability expects",
+        "actual_summary": "3 caps (3 new, 0 removed, 0 modified)",
+        "duration_ms": 64
+      }
+    ],
+    "duration_ms": 219
+  }
+]
