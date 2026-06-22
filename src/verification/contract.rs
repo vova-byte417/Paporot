@@ -286,3 +286,600 @@ fn find_empty_objects(v: &serde_json::Value) -> Vec<String> {
     }
     empties
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// Unit Tests
+// ═══════════════════════════════════════════════════════════════════════
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── Helpers ────────────────────────────────────────────────────
+
+    fn json_contract_yaml() -> String {
+        r#"artifact_type: json
+version: "1.0"
+severity: error
+
+rules:
+  syntax:
+    valid_json: true
+
+  structure:
+    required_fields:
+      - project_name
+      - summary
+    no_empty_arrays: true
+"#
+        .to_string()
+    }
+
+    fn excalidraw_contract_yaml() -> String {
+        r#"artifact_type: excalidraw
+version: "1.0"
+severity: error
+
+rules:
+  syntax:
+    valid_json: true
+    valid_excalidraw_schema: true
+
+  structure:
+    min_elements: 1
+    no_deleted_only: true
+    allowed_element_types:
+      - rectangle
+      - ellipse
+      - diamond
+      - text
+      - arrow
+      - line
+      - freedraw
+      - image
+    max_elements: 500
+"#
+        .to_string()
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // valid_json rule
+    // ═══════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_valid_json_passes() {
+        let result = verify_artifact(
+            "test-artifact",
+            "json",
+            r#"{"project_name":"Test","summary":"ok"}"#,
+            &json_contract_yaml(),
+        )
+        .unwrap();
+
+        assert_eq!(result.status, "PASS");
+        assert!(result.rule_results.iter().any(|r| r.rule == "valid_json" && r.pass));
+    }
+
+    #[test]
+    fn test_valid_json_fails_on_invalid() {
+        let result = verify_artifact(
+            "test-artifact",
+            "json",
+            r#"not json at all"#,
+            &json_contract_yaml(),
+        )
+        .unwrap();
+
+        assert_eq!(result.status, "FAIL");
+        let json_rule = result.rule_results.iter().find(|r| r.rule == "valid_json").unwrap();
+        assert!(!json_rule.pass);
+        assert!(json_rule.detail.as_ref().unwrap().contains("invalid JSON"));
+    }
+
+    #[test]
+    fn test_valid_json_passes_with_null() {
+        let result = verify_artifact(
+            "test-artifact",
+            "json",
+            "null",
+            &json_contract_yaml(),
+        )
+        .unwrap();
+
+        // null is valid JSON but fails required_fields (no project_name)
+        let json_rule = result.rule_results.iter().find(|r| r.rule == "valid_json").unwrap();
+        assert!(json_rule.pass);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Excalidraw schema
+    // ═══════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_excalidraw_schema_passes() {
+        let content = r#"{"type":"excalidraw","version":2,"elements":[{"type":"rectangle","x":0,"y":0}]}"#;
+        let result = verify_artifact(
+            "test-excalidraw",
+            "excalidraw",
+            content,
+            &excalidraw_contract_yaml(),
+        )
+        .unwrap();
+
+        let schema_rule = result.rule_results.iter().find(|r| r.rule == "valid_excalidraw_schema").unwrap();
+        assert!(schema_rule.pass);
+    }
+
+    #[test]
+    fn test_excalidraw_schema_fails_missing_type() {
+        let content = r#"{"version":2,"elements":[{"type":"rectangle"}]}"#;
+        let result = verify_artifact(
+            "test-excalidraw",
+            "excalidraw",
+            content,
+            &excalidraw_contract_yaml(),
+        )
+        .unwrap();
+
+        let schema_rule = result.rule_results.iter().find(|r| r.rule == "valid_excalidraw_schema").unwrap();
+        assert!(!schema_rule.pass);
+        assert!(schema_rule.detail.as_ref().unwrap().contains("missing 'type' field"));
+    }
+
+    #[test]
+    fn test_excalidraw_schema_fails_missing_version() {
+        let content = r#"{"type":"excalidraw","elements":[]}"#;
+        let result = verify_artifact(
+            "test-excalidraw",
+            "excalidraw",
+            content,
+            &excalidraw_contract_yaml(),
+        )
+        .unwrap();
+
+        let schema_rule = result.rule_results.iter().find(|r| r.rule == "valid_excalidraw_schema").unwrap();
+        assert!(!schema_rule.pass);
+        assert!(schema_rule.detail.as_ref().unwrap().contains("missing 'version' field"));
+    }
+
+    #[test]
+    fn test_excalidraw_schema_fails_missing_elements() {
+        let content = r#"{"type":"excalidraw","version":2}"#;
+        let result = verify_artifact(
+            "test-excalidraw",
+            "excalidraw",
+            content,
+            &excalidraw_contract_yaml(),
+        )
+        .unwrap();
+
+        let schema_rule = result.rule_results.iter().find(|r| r.rule == "valid_excalidraw_schema").unwrap();
+        assert!(!schema_rule.pass);
+        assert!(schema_rule.detail.as_ref().unwrap().contains("missing or invalid 'elements'"));
+    }
+
+    #[test]
+    fn test_excalidraw_schema_fails_elements_not_array() {
+        let content = r#"{"type":"excalidraw","version":2,"elements":"not-an-array"}"#;
+        let result = verify_artifact(
+            "test-excalidraw",
+            "excalidraw",
+            content,
+            &excalidraw_contract_yaml(),
+        )
+        .unwrap();
+
+        let schema_rule = result.rule_results.iter().find(|r| r.rule == "valid_excalidraw_schema").unwrap();
+        assert!(!schema_rule.pass);
+    }
+
+    #[test]
+    fn test_excalidraw_schema_elements_is_array_passes() {
+        let content = r#"{"type":"excalidraw","version":2,"elements":[]}"#;
+        let result = verify_artifact(
+            "test-excalidraw",
+            "excalidraw",
+            content,
+            &excalidraw_contract_yaml(),
+        )
+        .unwrap();
+
+        let schema_rule = result.rule_results.iter().find(|r| r.rule == "valid_excalidraw_schema").unwrap();
+        assert!(schema_rule.pass, "Elements array (even empty) should pass excalidraw schema check");
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // required_fields rule
+    // ═══════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_required_fields_all_present() {
+        let content = r#"{"project_name":"Test","summary":"A summary","extra":"ignored"}"#;
+        let result = verify_artifact(
+            "test-artifact", "json", content, &json_contract_yaml(),
+        )
+        .unwrap();
+
+        assert!(result.rule_results.iter().any(|r| r.rule == "required_field:project_name" && r.pass));
+        assert!(result.rule_results.iter().any(|r| r.rule == "required_field:summary" && r.pass));
+    }
+
+    #[test]
+    fn test_required_fields_missing_one() {
+        let content = r#"{"summary":"only summary"}"#;
+        let result = verify_artifact(
+            "test-artifact", "json", content, &json_contract_yaml(),
+        )
+        .unwrap();
+
+        let field_rule = result.rule_results.iter().find(|r| r.rule == "required_field:project_name").unwrap();
+        assert!(!field_rule.pass);
+        assert!(field_rule.detail.as_ref().unwrap().contains("missing required field"));
+        assert!(!result.suggestions.is_empty());
+    }
+
+    #[test]
+    fn test_required_fields_on_array_input_all_fail() {
+        let content = r#"[1, 2, 3]"#;
+        let result = verify_artifact(
+            "test-artifact", "json", content, &json_contract_yaml(),
+        )
+        .unwrap();
+
+        // Arrays don't have string-keyed fields, so all required_fields fail
+        let field_rules: Vec<_> = result.rule_results.iter()
+            .filter(|r| r.rule.starts_with("required_field:"))
+            .collect();
+        assert!(!field_rules.is_empty(), "required_fields should still run on array input");
+        assert!(field_rules.iter().all(|r| !r.pass), "all required_fields should fail on array");
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // no_empty_arrays rule
+    // ═══════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_no_empty_arrays_passes() {
+        let content = r#"{"project_name":"Test","summary":"ok","items":[1,2,3]}"#;
+        let result = verify_artifact(
+            "test-artifact", "json", content, &json_contract_yaml(),
+        )
+        .unwrap();
+
+        let rule = result.rule_results.iter().find(|r| r.rule == "no_empty_arrays").unwrap();
+        assert!(rule.pass);
+    }
+
+    #[test]
+    fn test_no_empty_arrays_detects_empty() {
+        let content = r#"{"project_name":"Test","summary":"ok","items":[]}"#;
+        let result = verify_artifact(
+            "test-artifact", "json", content, &json_contract_yaml(),
+        )
+        .unwrap();
+
+        let empty_rules: Vec<_> = result.rule_results.iter()
+            .filter(|r| r.rule == "no_empty_arrays" && !r.pass)
+            .collect();
+        assert!(!empty_rules.is_empty());
+    }
+
+    #[test]
+    fn test_no_empty_arrays_nested() {
+        let content = r#"{"project_name":"Test","summary":"ok","data":{"items":[]}}"#;
+        let result = verify_artifact(
+            "test-artifact", "json", content, &json_contract_yaml(),
+        )
+        .unwrap();
+
+        let empty_rules: Vec<_> = result.rule_results.iter()
+            .filter(|r| r.rule == "no_empty_arrays" && !r.pass)
+            .collect();
+        assert!(!empty_rules.is_empty());
+        let first_fail = empty_rules.first().unwrap();
+        assert!(first_fail.detail.as_ref().unwrap().contains("data.items"));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // min_elements / max_elements rules
+    // ═══════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_min_elements_passes() {
+        let content = r#"{"type":"excalidraw","version":2,"elements":[
+            {"type":"rectangle","x":0,"y":0},
+            {"type":"ellipse","x":1,"y":1}
+        ]}"#;
+        let result = verify_artifact(
+            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+        )
+        .unwrap();
+
+        let rule = result.rule_results.iter().find(|r| r.rule == "min_elements").unwrap();
+        assert!(rule.pass);
+    }
+
+    #[test]
+    fn test_min_elements_fails_with_zero() {
+        let content = r#"{"type":"excalidraw","version":2,"elements":[]}"#;
+        let result = verify_artifact(
+            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+        )
+        .unwrap();
+
+        let rule = result.rule_results.iter().find(|r| r.rule == "min_elements").unwrap();
+        assert!(!rule.pass);
+        assert!(rule.detail.as_ref().unwrap().contains("elements count: 0"));
+    }
+
+    #[test]
+    fn test_max_elements_passes() {
+        let elements: Vec<_> = (0..5).map(|i| {
+            serde_json::json!({"type":"rectangle","x":i,"y":0})
+        }).collect();
+        let content = serde_json::json!({
+            "type": "excalidraw", "version": 2, "elements": elements
+        }).to_string();
+
+        let result = verify_artifact(
+            "test-excalidraw", "excalidraw", &content, &excalidraw_contract_yaml(),
+        )
+        .unwrap();
+
+        let rule = result.rule_results.iter().find(|r| r.rule == "max_elements").unwrap();
+        assert!(rule.pass);
+    }
+
+    #[test]
+    fn test_max_elements_fails_when_exceeded() {
+        let elements: Vec<_> = (0..501).map(|i| {
+            serde_json::json!({"type":"rectangle","x":i,"y":0})
+        }).collect();
+        let content = serde_json::json!({
+            "type": "excalidraw", "version": 2, "elements": elements
+        }).to_string();
+
+        let result = verify_artifact(
+            "test-excalidraw", "excalidraw", &content, &excalidraw_contract_yaml(),
+        )
+        .unwrap();
+
+        let rule = result.rule_results.iter().find(|r| r.rule == "max_elements").unwrap();
+        assert!(!rule.pass);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // no_deleted_only rule
+    // ═══════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_no_deleted_only_passes_when_mixed() {
+        let content = r#"{"type":"excalidraw","version":2,"elements":[
+            {"type":"rectangle","isDeleted":true},
+            {"type":"ellipse","isDeleted":false}
+        ]}"#;
+        let result = verify_artifact(
+            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+        )
+        .unwrap();
+
+        let rule = result.rule_results.iter().find(|r| r.rule == "no_deleted_only").unwrap();
+        assert!(rule.pass);
+    }
+
+    #[test]
+    fn test_no_deleted_only_fails_all_deleted() {
+        let content = r#"{"type":"excalidraw","version":2,"elements":[
+            {"type":"rectangle","isDeleted":true},
+            {"type":"ellipse","isDeleted":true}
+        ]}"#;
+        let result = verify_artifact(
+            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+        )
+        .unwrap();
+
+        let rule = result.rule_results.iter().find(|r| r.rule == "no_deleted_only").unwrap();
+        assert!(!rule.pass);
+        assert!(!result.suggestions.is_empty());
+    }
+
+    #[test]
+    fn test_no_deleted_only_skips_on_non_excalidraw() {
+        let content = r#"{"project_name":"Test","summary":"ok","elements":[{"isDeleted":true}]}"#;
+        let result = verify_artifact(
+            "test-artifact", "json", content, &json_contract_yaml(),
+        )
+        .unwrap();
+
+        assert!(result.rule_results.iter().all(|r| r.rule != "no_deleted_only"));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // allowed_element_types rule
+    // ═══════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_allowed_element_types_passes() {
+        let content = r#"{"type":"excalidraw","version":2,"elements":[
+            {"type":"rectangle"},
+            {"type":"ellipse"},
+            {"type":"arrow"}
+        ]}"#;
+        let result = verify_artifact(
+            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+        )
+        .unwrap();
+
+        let rule = result.rule_results.iter().find(|r| r.rule == "allowed_element_types").unwrap();
+        assert!(rule.pass);
+    }
+
+    #[test]
+    fn test_allowed_element_types_fails_invalid_type() {
+        let content = r#"{"type":"excalidraw","version":2,"elements":[
+            {"type":"rectangle"},
+            {"type":"foobar_invalid_type"},
+            {"type":"arrow"}
+        ]}"#;
+        let result = verify_artifact(
+            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+        )
+        .unwrap();
+
+        let rule = result.rule_results.iter().find(|r| r.rule == "allowed_element_types").unwrap();
+        assert!(!rule.pass);
+        assert!(rule.detail.as_ref().unwrap().contains("foobar_invalid_type"));
+    }
+
+    #[test]
+    fn test_allowed_element_types_all_invalid() {
+        let content = r#"{"type":"excalidraw","version":2,"elements":[
+            {"type":"bad1"},
+            {"type":"bad2"}
+        ]}"#;
+        let result = verify_artifact(
+            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+        )
+        .unwrap();
+
+        let rule = result.rule_results.iter().find(|r| r.rule == "allowed_element_types").unwrap();
+        assert!(!rule.pass);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Overall status logic
+    // ═══════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_overall_pass_when_all_rules_pass() {
+        let content = r#"{"type":"excalidraw","version":2,"elements":[
+            {"type":"rectangle","x":0,"y":0}
+        ]}"#;
+        let result = verify_artifact(
+            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+        )
+        .unwrap();
+
+        assert_eq!(result.status, "PASS");
+        assert!(result.suggestions.is_empty());
+    }
+
+    #[test]
+    fn test_overall_fail_when_any_rule_fails() {
+        let content = r#"not json"#;
+        let result = verify_artifact(
+            "test-artifact", "json", content, &json_contract_yaml(),
+        )
+        .unwrap();
+
+        assert_eq!(result.status, "FAIL");
+    }
+
+    #[test]
+    fn test_partial_fail_collects_all_failures() {
+        let content = r#"{"summary":"ok","items":[],"more":[]}"#;
+        let result = verify_artifact(
+            "test-artifact", "json", content, &json_contract_yaml(),
+        )
+        .unwrap();
+
+        assert_eq!(result.status, "FAIL");
+        let fail_count = result.rule_results.iter().filter(|r| !r.pass).count();
+        assert!(fail_count >= 2, "Expected at least 2 failures, got {}", fail_count);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Edge cases
+    // ═══════════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_bad_contract_yaml_returns_error() {
+        let result = verify_artifact(
+            "test-artifact", "json", "{}", "definitely: not: valid: yaml: [[[",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_empty_contract_structure_produces_no_structure_rules() {
+        let contract = r#"artifact_type: json
+version: "1.0"
+severity: error
+rules:
+  syntax:
+    valid_json: true
+  structure: {}
+"#;
+        let result = verify_artifact(
+            "test-artifact", "json", "{}", contract,
+        )
+        .unwrap();
+
+        assert_eq!(result.rule_results.len(), 1);
+        assert!(result.rule_results[0].pass);
+    }
+
+    #[test]
+    fn test_syntax_rule_not_enabled_does_not_check() {
+        let contract = r#"artifact_type: json
+version: "1.0"
+severity: error
+rules:
+  syntax: {}
+  structure:
+    required_fields:
+      - name
+"#;
+        let result = verify_artifact(
+            "test-artifact", "json", "not json!!!!", contract,
+        )
+        .unwrap();
+
+        assert!(result.rule_results.iter().all(|r| r.rule != "valid_json"));
+        let name_rule = result.rule_results.iter().find(|r| r.rule == "required_field:name");
+        assert!(name_rule.is_none());
+    }
+
+    #[test]
+    fn test_conforms_to_schema_rule() {
+        let contract = r#"artifact_type: json
+version: "1.0"
+severity: error
+rules:
+  syntax:
+    conforms_to_schema: "some_schema.json"
+  structure: {}
+"#;
+        let result = verify_artifact(
+            "test-artifact", "json", "{}", contract,
+        )
+        .unwrap();
+
+        let rule = result.rule_results.iter().find(|r| r.rule == "conforms_to_schema").unwrap();
+        assert!(rule.pass);
+        assert!(rule.detail.as_ref().unwrap().contains("some_schema.json"));
+    }
+
+    #[test]
+    fn test_artifact_id_and_type_are_preserved() {
+        let result = verify_artifact(
+            "custom-id", "excalidraw", "{}", &json_contract_yaml(),
+        )
+        .unwrap();
+
+        assert_eq!(result.artifact_id, "custom-id");
+        assert_eq!(result.artifact_type, "excalidraw");
+    }
+
+    #[test]
+    fn test_excalidraw_valid_with_no_elements_still_fails_min_elements() {
+        let content = r#"{"type":"excalidraw","version":2,"elements":[]}"#;
+        let result = verify_artifact(
+            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+        )
+        .unwrap();
+
+        assert_eq!(result.status, "FAIL");
+        assert!(result.rule_results.iter().any(|r| r.rule == "min_elements" && !r.pass));
+    }
+}

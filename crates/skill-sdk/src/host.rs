@@ -108,3 +108,83 @@ pub fn skill_log(level: i32, msg: &str) {
     let bytes = msg.as_bytes();
     unsafe { paporot_log(level, bytes.as_ptr(), bytes.len() as i32) };
 }
+
+// ─── Verification Host Functions ─────────────────────────────────
+
+#[link(wasm_import_module = "env")]
+extern "C" {
+    /// Contract 验证
+    /// type_ptr, type_len, content_ptr, content_len -> (result_ptr << 32) | result_len
+    fn host_verify_contract(
+        type_ptr: *const u8, type_len: i32,
+        content_ptr: *const u8, content_len: i32,
+    ) -> i64;
+
+    /// 收集 Evidence
+    /// id_ptr, id_len, input_ptr, input_len, output_ptr, output_len, intermediate_ptr, intermediate_len -> errno
+    fn host_capture_evidence(
+        id_ptr: *const u8, id_len: i32,
+        input_ptr: *const u8, input_len: i32,
+        output_ptr: *const u8, output_len: i32,
+        intermediate_ptr: *const u8, intermediate_len: i32,
+    ) -> i32;
+
+    /// 保存 Replay Case
+    /// case_ptr, case_len -> errno
+    fn host_save_replay_case(case_ptr: *const u8, case_len: i32) -> i32;
+
+    /// 加载所有 Replay Case
+    /// -> (cases_ptr << 32) | cases_len
+    fn host_load_replay_cases() -> i64;
+}
+
+/// 调用 Contract Engine 验证 artifact
+pub fn verify_contract(artifact_type: &str, artifact_content: &str) -> Option<String> {
+    let type_bytes = artifact_type.as_bytes();
+    let content_bytes = artifact_content.as_bytes();
+    let packed = unsafe {
+        host_verify_contract(
+            type_bytes.as_ptr(), type_bytes.len() as i32,
+            content_bytes.as_ptr(), content_bytes.len() as i32,
+        )
+    };
+    let (ptr, len) = unpack_result(packed);
+    if ptr.is_null() || len == 0 {
+        return None;
+    }
+    let data = unsafe { std::slice::from_raw_parts(ptr, len) };
+    String::from_utf8(data.to_vec()).ok()
+}
+
+/// 收集 evidence（内存中，沙盒生命周期内）
+pub fn capture_evidence(artifact_id: &str, input: &str, output: &str, intermediate: &str) -> i32 {
+    let id = artifact_id.as_bytes();
+    let inp = input.as_bytes();
+    let out = output.as_bytes();
+    let int = intermediate.as_bytes();
+    unsafe {
+        host_capture_evidence(
+            id.as_ptr(), id.len() as i32,
+            inp.as_ptr(), inp.len() as i32,
+            out.as_ptr(), out.len() as i32,
+            int.as_ptr(), int.len() as i32,
+        )
+    }
+}
+
+/// 保存 replay case（FAIL 时持久化）
+pub fn save_replay_case(case_json: &str) -> i32 {
+    let bytes = case_json.as_bytes();
+    unsafe { host_save_replay_case(bytes.as_ptr(), bytes.len() as i32) }
+}
+
+/// 加载所有 replay case
+pub fn load_replay_cases() -> Option<String> {
+    let packed = unsafe { host_load_replay_cases() };
+    let (ptr, len) = unpack_result(packed);
+    if ptr.is_null() || len == 0 {
+        return Some("[]".to_string());
+    }
+    let data = unsafe { std::slice::from_raw_parts(ptr, len) };
+    String::from_utf8(data.to_vec()).ok()
+}

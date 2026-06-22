@@ -290,8 +290,13 @@ fn execute_single_skill(
     source_context: &Option<String>,
 ) -> Result<Option<String>, String> {
     // ── Procedural skills (no LLM) ───────────────────────────
-    if skill_name == "verification-runner" {
-        return run_verification_runner(upstream);
+    let is_procedural = skill_toml
+        .and_then(|t| t.llm_calls.as_ref())
+        .map(|l| l.max_calls == 0)
+        .unwrap_or(false);
+
+    if is_procedural {
+        return run_procedural_skill(skill_name, upstream);
     }
 
     let description = skill_toml
@@ -475,8 +480,16 @@ fn build_skill_stub(skill_name: &str, upstream: &HashMap<String, String>) -> Str
     }
 }
 
-// ─── Verification Runner (Procedural, no LLM) ──────────────────
+// ─── Procedural Skill Dispatcher (no LLM) ──────────────────────
 
+fn run_procedural_skill(skill_name: &str, upstream: &HashMap<String, String>) -> Result<Option<String>, String> {
+    match skill_name {
+        "verification-runner" => run_verification_runner(upstream),
+        _ => Err(format!("Unknown procedural skill: {}", skill_name)),
+    }
+}
+
+/// Verification Runner — Contract 验证 + Evidence 收集 + Replay Case 保存
 fn run_verification_runner(upstream: &HashMap<String, String>) -> Result<Option<String>, String> {
     use crate::host;
 
