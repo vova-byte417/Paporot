@@ -1,0 +1,24 @@
+# Excalidraw Artifact Contract
+# MVP: structural correctness checks only (no semantic validation)
+artifact_type: excalidraw
+version: "1.0"
+severity: error
+
+rules:
+  syntax:
+    valid_json: true
+    valid_excalidraw_schema: true
+
+  structure:
+    min_elements: 1
+    no_deleted_only: true
+    allowed_element_types:
+      - rectangle
+      - ellipse
+      - diamond
+      - text
+      - arrow
+      - line
+      - freedraw
+      - image
+    max_elements: 500

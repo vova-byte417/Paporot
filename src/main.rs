@@ -12,6 +12,7 @@ use wasmtime_wasi::{DirPerms, FilePerms, WasiCtxBuilder};
 use wasmtime_wasi::preview1::WasiP1Ctx;
 
 mod config;
+mod verification;
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
@@ -103,6 +104,7 @@ struct SandboxHost {
     wasi: WasiP1Ctx,
     llm_config: Option<config::LlmConfig>,
     paporot_dir: PathBuf,
+    evidence_buffer: verification::evidence::EvidenceBuffer,
 }
 
 impl SandboxHost {
@@ -111,7 +113,12 @@ impl SandboxHost {
         llm_config: Option<config::LlmConfig>,
         paporot_dir: PathBuf,
     ) -> Self {
-        Self { wasi, llm_config, paporot_dir }
+        Self {
+            wasi,
+            llm_config,
+            paporot_dir,
+            evidence_buffer: verification::evidence::EvidenceBuffer::new(),
+        }
     }
 }
 
@@ -395,6 +402,103 @@ fn register_host_functions(linker: &mut Linker<SandboxHost>) -> Result<()> {
                     0
                 }
             }
+        },
+    )?;
+
+    // host_verify_contract(type_ptr, type_len, content_ptr, content_len) -> packed_result
+    linker.func_wrap("env", "host_verify_contract",
+        |mut caller: Caller<'_, SandboxHost>,
+         type_ptr: i32, type_len: i32,
+         content_ptr: i32, content_len: i32| -> i64 {
+            let mem = match caller.get_export("memory").and_then(|e| e.into_memory()) {
+                Some(m) => m, None => return 0,
+            };
+            let mut t = vec![0u8; type_len as usize];
+            let mut c = vec![0u8; content_len as usize];
+            if mem.read(&caller, type_ptr as usize, &mut t).is_err() { return 0; }
+            if mem.read(&caller, content_ptr as usize, &mut c).is_err() { return 0; }
+            let artifact_type = String::from_utf8_lossy(&t).into_owned();
+            let artifact_content = String::from_utf8_lossy(&c).into_owned();
+
+            let dir = &caller.data().paporot_dir;
+            let contract_path = dir.join("contracts").join(format!("{}.contract.yaml", artifact_type));
+            let contract_yaml = std::fs::read_to_string(&contract_path).unwrap_or_default();
+
+            let result = verification::contract::verify_artifact(
+                &artifact_type, &artifact_type, &artifact_content, &contract_yaml,
+            );
+            match result {
+                Ok(verification_result) => {
+                    let json = serde_json::to_string(&verification_result).unwrap_or_default();
+                    pack_to_wasm(&mut caller, json.as_bytes())
+                }
+                Err(e) => {
+                    let err_json = format!(r#"{{"status":"ERROR","error":"{}"}}"#, e);
+                    pack_to_wasm(&mut caller, err_json.as_bytes())
+                }
+            }
+        },
+    )?;
+
+    // host_capture_evidence(id_ptr, id_len, input_ptr, input_len, output_ptr, output_len, intermediate_ptr, intermediate_len) -> errno
+    linker.func_wrap("env", "host_capture_evidence",
+        |mut caller: Caller<'_, SandboxHost>,
+         id_ptr: i32, id_len: i32,
+         input_ptr: i32, input_len: i32,
+         output_ptr: i32, output_len: i32,
+         intermediate_ptr: i32, intermediate_len: i32| -> i32 {
+            let mem = match caller.get_export("memory").and_then(|e| e.into_memory()) {
+                Some(m) => m, None => return 1,
+            };
+            let mut id_buf = vec![0u8; id_len as usize];
+            let mut in_buf = vec![0u8; input_len as usize];
+            let mut out_buf = vec![0u8; output_len as usize];
+            let mut int_buf = vec![0u8; intermediate_len as usize];
+            if mem.read(&caller, id_ptr as usize, &mut id_buf).is_err() { return 1; }
+            if mem.read(&caller, input_ptr as usize, &mut in_buf).is_err() { return 1; }
+            if mem.read(&caller, output_ptr as usize, &mut out_buf).is_err() { return 1; }
+            if mem.read(&caller, intermediate_ptr as usize, &mut int_buf).is_err() { return 1; }
+
+            let host = caller.data_mut();
+            host.evidence_buffer.capture(
+                &String::from_utf8_lossy(&id_buf),
+                &String::from_utf8_lossy(&in_buf),
+                &String::from_utf8_lossy(&out_buf),
+                &String::from_utf8_lossy(&int_buf),
+            );
+            0
+        },
+    )?;
+
+    // host_save_replay_case(case_ptr, case_len) -> errno
+    linker.func_wrap("env", "host_save_replay_case",
+        |mut caller: Caller<'_, SandboxHost>,
+         case_ptr: i32, case_len: i32| -> i32 {
+            let mem = match caller.get_export("memory").and_then(|e| e.into_memory()) {
+                Some(m) => m, None => return 1,
+            };
+            let mut buf = vec![0u8; case_len as usize];
+            if mem.read(&caller, case_ptr as usize, &mut buf).is_err() { return 1; }
+            let case_json = String::from_utf8_lossy(&buf).into_owned();
+            let case: verification::types::ReplayCase = match serde_json::from_str(&case_json) {
+                Ok(c) => c,
+                Err(_) => return 1,
+            };
+            let dir = caller.data().paporot_dir.clone();
+            match verification::evidence::save_replay_case(&case, &dir) {
+                Ok(()) => 0,
+                Err(_) => 1,
+            }
+        },
+    )?;
+
+    // host_load_replay_cases() -> packed_json
+    linker.func_wrap("env", "host_load_replay_cases",
+        |mut caller: Caller<'_, SandboxHost>| -> i64 {
+            let dir = caller.data().paporot_dir.clone();
+            let cases = verification::evidence::load_replay_cases(&dir);
+            let json = serde_json::to_string(&cases).unwrap_or_else(|_| "[]".into());
+            pack_to_wasm(&mut caller, json.as_bytes())
         },
     )?;
 

@@ -1,0 +1,11 @@
+# HTML Artifact Contract
+# MVP: basic syntax check only
+artifact_type: html
+version: "1.0"
+severity: warn
+
+rules:
+  syntax:
+    valid_json: false
+
+  structure: {}

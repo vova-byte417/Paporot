@@ -18,3 +18,4 @@ pub mod storage;
 pub mod trace;
 pub mod trajectory;
 pub mod types;
+pub mod verification;
