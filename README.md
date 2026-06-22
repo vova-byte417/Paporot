@@ -2,109 +2,293 @@
 
 **AI 生成代码的行为审计与沙盒化分析管道**
 
-Paporot 是一个命令行工具，回答 AI Agent 写代码时两个最基本的问题：
+Paporot 是一个高度自动化的命令行工具，回答 AI Agent 写代码时两个最基本的问题：
 
 1. **这次 Agent 改了什么能力？**（Capability Version Control）
 2. **Agent 的行为变好还是变坏了？**（Behavior Version Control）
 
-当前已实现 **WASM 沙盒分析管道**：通过 6 个可组合 Skill 对项目进行多维度审计，生成 JSON / Markdown / HTML 三份报告。
+核心亮点：
+- **完全自动化** — AI Agent 提交代码后自动触发全管道分析，无需人工干预
+- **Skill 编排** — 6 个可组合的 WASM Skill 按 DAG 依赖自动编排执行，每个 Skill 完成一个分析维度
+- **总指挥 Skill** — `architecture-doc-generator` 作为总组织者，聚合所有上游 Skill 输出，统一生成报告
+- **WASM 沙盒隔离** — 所有分析逻辑在 wasmtime 沙盒内运行，仅通过 3 个受控 host function 与外部交互
+- **三层行为版本控制** — 从结构层(P0 状态机) → 几何层(P1 轨迹向量) → 网络层(P2 行为耦合图) 逐层深入
+
+---
+
+## 项目架构
+
+![Paporot Architecture](docs/paporot-architecture.png)
+
+> 架构图源文件：`docs/paporot-architecture.excalidraw`（可用 Excalidraw 打开编辑）
+
+### 架构概览
+
+Paporot 采用 **两级架构**，通过 wasmtime 运行时将分析逻辑隔离在 WASM 沙盒内：
+
+| 层级 | 组件 | 编译目标 | 职责 |
+|------|------|----------|------|
+| **宿主层** | `src/main.rs` + 命令模块 | native | 加载 .wasm、注册 3 个 host function、转发 CLI 参数 |
+| **沙盒层** | `crates/paporot-core/` | wasm32-wasip1 | Skill 扫描 → DAG 拓扑排序 → 逐层执行 → 报告生成 |
+
+### 模块关系
+
+```
+src/
+├── main.rs               ← 宿主入口：加载 WASM + 注册 host functions + 转发 CLI
+├── cli.rs                ← CLI 命令行定义 (16 个子命令)
+├── config.rs             ← LLM 配置解析
+│
+├── commands/             ← 16 个分析命令的实现
+│   ├── analyze.rs        ← 运行完整 Skill 分析管道 (← 核心入口)
+│   ├── trace.rs          ← 执行轨迹导入与管理
+│   ├── trajectory.rs     ← 行为轨迹对比 (diff)
+│   ├── state.rs          ← P0 状态机构建
+│   ├── trajectory_vector.rs ← P1 轨迹向量
+│   ├── coupling.rs       ← P2 行为耦合图
+│   ├── snapshot.rs       ← 能力快照
+│   ├── diff.rs           ← 版本差异
+│   ├── coverage.rs       ← PRD 覆盖率
+│   ├── regression.rs     ← 回归检测
+│   ├── risk.rs           ← 风险评估
+│   ├── review.rs         ← 整合审查
+│   ├── graph.rs          ← 依赖图
+│   ├── feedback.rs       ← 人机验证回路
+│   └── ...
+│
+├── trace/                ← Agent 日志适配器（DeepSeek / Claude / OpenAI）
+├── trajectory/           ← 三层行为版本控制（P0/P1/P2 全部子模块）
+│   ├── state/            ← P0 行为状态机
+│   ├── p1/               ← P1 轨迹向量（特征提取/聚类/时序）
+│   ├── p2/               ← P2 行为耦合图（co-change/相似度/图构建）
+│   ├── align/            ← 轨迹对齐引擎
+│   ├── evaler/           ← 评估器（状态/转换/图评估）
+│   └── projection/       ← 状态到差异投影
+│
+├── analysis/             ← L1 AST / L2 规则 / L3 LLM 桥接
+├── evidence/             ← 能力证据收集与置信度评估
+├── evaler/               ← 通用评估（规则/趋势）
+├── llm/                  ← DeepSeek API 客户端
+├── report/               ← 报告生成器（JSON / MD / HTML Dashboard）
+├── skills/               ← Skill 运行与管理（注册表/DAG/WASM host）
+├── storage.rs            ← SQLite 持久化
+└── agent.rs              ← Agent 抽象
+```
+
+### WASM 沙盒隔离模型
+
+沙盒内的 `paporot-core.wasm` 只能通过 3 个受控 host function 与外部交互：
+
+| Host Function | 说明 | 安全约束 |
+|---------------|------|----------|
+| `host_read_file` | 读取文件 | 仅允许 `.Paporot/` 目录内，路径遍历防护 |
+| `host_write_file` | 写入文件 | 仅允许 `.Paporot/` 目录内 |
+| `host_llm_call` | LLM 推理 | 仅调用配置的 endpoint |
+
+### 自动化的 Skill 编排管道
+
+分析过程完全自动化，无需人工干预。管道由 **DAG 依赖拓扑排序** 驱动：
+
+```
+触发 (AI Agent 提交代码)
+  │
+  ▼
+┌─────────────────────────────────────────────────┐
+│  L1  repository-understanding                   │  识别项目目标、技术栈、入口
+│  L2  module-discovery                           │  发现业务/技术模块，聚类文件
+│  L3  dependency-analysis                        │  构建依赖图、计算耦合指标
+│  L4  runtime-flow-analysis                      │  端到端执行路径追踪
+│  L5  behavior-boundary-discovery                │  行为组件边界发现
+│  L6  architecture-doc-generator  ★ 总指挥       │  聚合上游输出 → 生成 JSON/MD/HTML
+└─────────────────────────────────────────────────┘
+  │
+  ▼
+输出报告 (.Paporot/reports/)
+  ├── analysis_result.json    ← 结构化机器可读数据
+  ├── architecture.md         ← 开发者可读架构报告
+  └── dashboard.html          ← 暗色主题交互式可视化面板
+```
+
+> **总指挥 Skill** (`architecture-doc-generator`, L6)：作为管道的最后一层，它不独立分析，而是消费 L1-L5 所有上游 Skill 的输出，负责：
+> - 整合所有分析维度（项目概要、模块划分、依赖关系、执行流程、行为边界）
+> - 生成三种格式的报告（JSON / Markdown / HTML Dashboard）
+> - 统一风险评估与建议输出
+
+---
+
+## 三层行为版本控制
+
+当 Agent 多次执行同一任务时，Paporot 能自动检测行为变化——Agent 用了更多工具调用？执行了更复杂的流程？行为模式退化了吗？
+
+```
+P0: 行为状态机 (结构层)
+    BehaviorTrace → BehaviorStateGraph
+          │  状态分割 / 合并判决 (threshold-based)
+          ▼
+P1: 轨迹向量 (几何层)
+    StateGraph → 10维 TrajectoryVector
+          │  序列熵 / 循环占比 / 突发性 (projection)
+          ▼
+P2: 行为耦合图 (网络层)
+    Vectors → Capability Coupling Graph
+          co-change 边定义 + similarity 调制强度
+```
+
+| 层 | 命令 | 核心指标 |
+|----|------|----------|
+| **P0** | `paporot state build/eval` | 状态分割、合并判决、图结构差异 |
+| **P1** | `paporot trajectory-vector` | 10 维向量（tool_entropy, phase_entropy, transition_entropy, loop_ratio, backtrack_ratio, burst_ratio, state_stability_score 等） |
+| **P2** | `paporot coupling` | co-change 频率、capability 间耦合强度 |
+
+P0 用 features 做判决（merge/split, threshold-based），P1 用相同 features 做测量（projection, no threshold），P2 用 co-change 定义边存在性，用 similarity 调制强度。
 
 ---
 
 ## 快速开始
 
-```bash
-# 前置: Rust 1.96+, wasm32-wasip1 target
-rustup target add wasm32-wasip1
+### 前置条件
 
-# 编译
+- **Rust** 1.96+ 工具链（在 WSL 中使用）
+- **wasm32-wasip1** target：
+  ```bash
+  rustup target add wasm32-wasip1
+  ```
+- **LLM API Key**（可选，未配置时 Skill 返回 stub 输出）
+
+### 编译 Release
+
+```bash
+# Step 1: 编译 WASM 沙盒核心
 cargo build --manifest-path crates/paporot-core/Cargo.toml --target wasm32-wasip1 --release
+
+# Step 2: 编译 native loader
 cargo build --release
 
-# 列出现有 Skill
-./target/release/Paporot skill list
+# Step 3: 部署 WASM 到项目数据目录
+mkdir -p .Paporot/bin
+cp crates/paporot-core/target/wasm32-wasip1/release/paporot-core.wasm .Paporot/bin/
+```
 
-# 运行完整分析
+构建产物：
+- `target/release/Paporot` — Native 可执行文件（可直接分发）
+- `crates/paporot-core/target/wasm32-wasip1/release/paporot-core.wasm` — 沙盒 WASM
+
+### 配置 LLM
+
+在项目根目录创建 `.Paporot/config.toml`：
+
+```toml
+[llm]
+api_key = ""                      # 留空从环境变量 PAPOROT_API_KEY 读取
+model = "deepseek-chat"
+endpoint = ""                     # 留空使用默认 endpoint
+temperature = 0.3
+max_tokens = 4096
+```
+
+或直接设置环境变量：
+
+```bash
+export PAPOROT_API_KEY="sk-xxxxxxxxxxxxxxxx"
+```
+
+> 未配置 LLM 时分析仍可运行，Skill 会返回 stub 输出。
+
+---
+
+## 使用说明
+
+### 1. 运行完整分析（推荐首选）
+
+```bash
+# 基本分析
 ./target/release/Paporot analyze
 
 # 指定 PRD + 输入文件
 ./target/release/Paporot analyze --prd docs/prd.md --input src/main.rs
 ```
 
-分析结果输出到 `.Paporot/reports/`：
-- `analysis_result.json` — 结构化 JSON
-- `architecture.md` — Markdown 报告
-- `dashboard.html` — 暗色主题可视化面板
+自动执行 6 个 Skill（按 DAG 顺序）并生成报告到 `.Paporot/reports/`：
+- `analysis_result.json` — 结构化 JSON 数据
+- `architecture.md` — Markdown 架构报告
+- `dashboard.html` — 暗色主题可视化面板（含 Skill DAG、风险等级、执行状态）
 
----
+### 2. 查看已安装的 Skill
 
-## 架构
-
-分析逻辑完全在 WASM 沙盒内运行，只能通过 3 个受控的 host function 与外部交互。
-
-```
-┌────────────────────────────────────────────┐
-│           Paporot (Native Binary)          │
-│                                            │
-│  ┌──────────────────────────────────────┐  │
-│  │       wasmtime Runtime Engine        │  │
-│  │                                      │  │
-│  │  ┌────────────────────────────────┐  │  │
-│  │  │  paporot-core.wasm (Sandbox)   │  │  │
-│  │  │                                │  │  │
-│  │  │  • CLI 入口                    │  │  │
-│  │  │  • pipeline (Skill扫描/DAG/报告)│  │  │
-│  │  │  • host (FFI 绑定)             │  │  │
-│  │  └────────────────────────────────┘  │  │
-│  │                                      │  │
-│  │  Host Functions:                     │  │
-│  │  1. host_read_file  (受控文件读)     │  │
-│  │  2. host_write_file (受控文件写)     │  │
-│  │  3. host_llm_call   (LLM 推理)      │  │
-│  └──────────────────────────────────────┘  │
-└────────────────────────────────────────────┘
+```bash
+./target/release/Paporot skill list
 ```
 
-### 两级架构
+### 3. 行为版本控制
 
-| 层级 | 组件 | Target | 职责 |
-|------|------|--------|------|
-| 宿主层 | `src/main.rs` | native (x86_64-linux) | 加载 .wasm、注册 host function、转发 CLI 参数 |
-| 沙盒层 | `crates/paporot-core/` | wasm32-wasip1 | 扫描 Skill → DAG 编排 → 执行分析 → 写报告 |
+```bash
+# 创建快照
+paporot snapshot create -m "修复了登录 Bug"
 
-### Host Function 签名
+# 对比两个版本
+paporot diff --from v1 --to v2
 
-所有数据通过 WASM 线性内存的 packed pointer 传递：
+# PRD 覆盖率分析
+paporot coverage -p docs/prd.md
 
-| 函数 | 签名 | 说明 |
-|------|------|------|
-| `host_read_file` | `(path_ptr, path_len) → (ptr<<32)\|len` | 读取 .Paporot/ 内文件，带路径遍历防护 |
-| `host_write_file` | `(path_ptr, path_len, data_ptr, data_len) → errno` | 写入 .Paporot/ 内文件 |
-| `host_llm_call` | `(prompt_ptr, prompt_len, schema_ptr, schema_len) → (ptr<<32)\|len` | 调用 LLM API |
+# 回归检测
+paporot regression --from v1 --to v2
 
----
+# 风险评估
+paporot risk
+```
 
-## Skill 体系
+### 4. 执行轨迹追踪
 
-每个 Skill 由 `.Paporot/skills/<name>/skill.toml` 定义，声明输入、输出、依赖和 LLM 预算。
+```bash
+# 导入 Agent 日志
+paporot trace import agent_log.json
+paporot trace import session.json --adapter claude-code
 
-### 内置 6 个 Skill（按 DAG 层排列）
+# 查看导入的轨迹
+paporot trace list
+paporot trace show <trace_id>
 
-| Skill | 职责 | DAG 层 |
-|-------|------|--------|
-| `repository-understanding` | 识别项目目标、技术栈、入口 | Layer 1 |
-| `module-discovery` | 发现业务/技术模块，聚类文件 | Layer 2 |
-| `dependency-analysis` | 构建依赖图、计算耦合指标 | Layer 3 |
-| `runtime-flow-analysis` | 端到端执行路径追踪 | Layer 4 |
-| `behavior-boundary-discovery` | 行为组件边界发现 | Layer 5 |
-| `architecture-doc-generator` | 聚合上游输出，生成架构文档 | Layer 6 |
+# 轨迹对比（检测行为变化）
+paporot trajectory diff --trace-a <id> --trace-b <id>
+paporot trajectory diff --capability cap_auth
+```
 
-### DAG 编排规则
+### 5. 三层行为分析
 
-- **依赖声明**：Skill 通过 `[dependencies] uses_outputs_from` 声明对上游 Skill 输出的依赖
-- **拓扑排序**：自动构建 DAG 并分层执行
-- **失败传播**：上游 Skill 失败时，依赖它的下游 Skill 会被跳过
-- **输出缓存**：Skill 的输出按名称缓存在 HashMap 中，下游可引用
+```bash
+# P0: 行为状态机
+paporot state build --trace <id>
+paporot state eval --trace <id>
+paporot state diff --trace-a <a> --trace-b <b>
+
+# P1: 轨迹向量（10 维）
+paporot trajectory-vector build --trace <id>
+paporot trajectory-vector cluster --traces t1 t2 t3 t4
+paporot trajectory-vector anomaly --traces t1 t2 t3 t4 t5
+
+# P2: 行为耦合图
+paporot coupling build --pairs trace1:cap_auth trace2:cap_auth
+paporot coupling analyze --cap cap_auth
+paporot coupling impact --cap cap_auth
+```
+
+### 6. 依赖图分析
+
+```bash
+paporot graph show
+paporot graph show --capability cap_auth --depth 2
+paporot graph impact --capability cap_auth
+paporot graph cycles
+```
+
+### 7. 整合审查（一键全流程）
+
+```bash
+paporot review -p docs/prd.md
+```
+
+一条命令完成：snapshot + diff + coverage + regression + risk 全流程。
 
 ---
 
@@ -115,266 +299,81 @@ Paporot/
 ├── Cargo.toml                    # Native binary 包描述
 ├── src/
 │   ├── main.rs                   # Native loader 入口 (wasmtime + WASI)
-│   ├── config.rs                 # Config/LlmConfig 结构体
-│   └── ...
+│   ├── cli.rs                    # CLI 16 个子命令定义
+│   ├── config.rs                 # LLM 配置
+│   ├── commands/                 # 所有分析命令实现
+│   ├── trace/                    # Agent 日志适配器
+│   ├── trajectory/               # P0/P1/P2 行为分析
+│   │   ├── state/                # P0 状态机
+│   │   ├── p1/                   # P1 轨迹向量
+│   │   ├── p2/                   # P2 行为耦合图
+│   │   ├── align/                # 对齐引擎
+│   │   ├── evaler/               # 评估器
+│   │   └── projection/           # 状态投影
+│   ├── analysis/                 # L1/L2/L3 分析
+│   ├── evidence/                 # 能力证据
+│   ├── report/                   # 报告生成 (dashboard.rs)
+│   └── skills/                   # Skill 运行管理
 │
 ├── crates/
-│   ├── paporot-core/             # WASM 沙盒核心
-│   │   ├── Cargo.toml            # wasm32-wasip1 target
+│   ├── paporot-core/             # WASM 沙盒核心 (wasm32-wasip1)
 │   │   └── src/
 │   │       ├── main.rs           # 沙盒 CLI 入口
-│   │       ├── lib.rs            # 模块导出
-│   │       ├── pipeline.rs       # 分析管线
-│   │       └── host.rs           # Host function FFI 绑定
-│   └── skills/                   # Skill 源码 + WASM (原有)
+│   │       ├── pipeline.rs       # Skill 扫描 → DAG → 执行 → 报告
+│   │       └── host.rs           # Host function FFI
+│   ├── skills/                   # Skill WASM 源码
+│   └── skill-sdk/                # Skill 开发 SDK
 │
 ├── .Paporot/                     # 项目数据目录
-│   ├── bin/                      # paporot-core.wasm 部署位置
-│   ├── config.toml               # LLM 配置 (可选)
-│   ├── skills/                   # 已安装的 Skill
-│   │   ├── repository-understanding/
-│   │   │   ├── skill.toml
-│   │   │   └── skill.wasm
-│   │   ├── module-discovery/
-│   │   ├── dependency-analysis/
-│   │   ├── runtime-flow-analysis/
-│   │   ├── behavior-boundary-discovery/
-│   │   └── architecture-doc-generator/
-│   ├── reports/                  # 分析报告输出
-│   │   ├── analysis_result.json
-│   │   ├── architecture.md
-│   │   └── dashboard.html
-│   └── work/                     # 临时工作文件
+│   ├── bin/                      # paporot-core.wasm
+│   ├── config.toml               # LLM 配置
+│   ├── skills/                   # 已安装的 Skill (各含 skill.toml + skill.wasm)
+│   ├── reports/                  # 分析输出 (JSON / MD / HTML)
+│   └── work/                     # 临时文件
 │
 └── docs/
-    └── architecture.md           # 架构详细文档
+    ├── architecture.md           # 详细架构文档
+    ├── paporot-architecture.excalidraw  # 架构图源文件
+    └── prd/                      # 各模块 PRD 文档
 ```
-
----
-
-## 典型使用场景
-
-### 场景 1：Agent 提交了代码，我想知道改了什么
-
-```bash
-paporot review
-```
-
-输出：
-
-```
-Capability Changes:
-  cap_001  Authentication (Modified)  ── login() 签名变了
-  cap_002  API Rate Limit  (New)      ── 新增了 check_rate_limit()
-
-Risk: Medium  ── 认证模块的破坏性变更可能影响下游
-Dependencies affected: cap_003 (User Profile)
-```
-
-如果你们有 PRD，加上 `-p docs/prd.md` 还能看到需求覆盖了百分之几。
-
-### 场景 2：同一个 Bug，Agent 修了两次，行为不一样了
-
-```bash
-paporot trace import ~/.claude/sessions/session_001.json
-paporot trace import ~/.claude/sessions/session_002.json
-paporot trajectory diff --trace-a trace_001 --trace-b trace_002
-```
-
-输出工具调用数、阶段变更、Gantt 图等对比信息。如果"验证"阶段 tool 调用暴增，自动标记为退化风险。
-
-### 场景 3：多个版本后，我想看趋势
-
-```bash
-paporot diff --from v1 --to v5
-paporot regression --from v1 --to v5
-```
-
-Dashboard 四个标签页：Evidence Explorer / Capability Graph / Behavior Eval / Trajectory Diff。
-
----
-
-## 命令速查
-
-### Capability 版本控制
-
-```bash
-paporot snapshot create -m "描述这次改动"
-paporot snapshot create -m "..." -p prd.md
-paporot diff --from v1 --to v2
-paporot diff --from v1 --to v2 --format mermaid
-paporot coverage -p prd.md
-paporot regression --from v1 --to v2
-paporot risk
-paporot review -p prd.md
-paporot status
-```
-
-### 执行轨迹追踪
-
-```bash
-paporot trace import agent_log.json
-paporot trace import session.json --adapter claude-code
-paporot trace list
-paporot trace list --cap cap_auth --from 2026-06-01
-paporot trace show <trace_id>
-paporot trace link <trace_id> --cap cap_auth
-paporot trace adapter list
-```
-
-支持的 Agent 格式：DeepSeek · Claude Code · OpenAI Chat Completion
-
-### 行为版本控制（Trajectory Diff & Eval）
-
-```bash
-paporot trajectory diff --trace-a <id> --trace-b <id>
-paporot trajectory diff --capability cap_auth
-paporot trajectory diff --format json | mermaid
-paporot trajectory list
-paporot trajectory show <diff_id>
-```
-
-### 依赖图
-
-```bash
-paporot graph show
-paporot graph show --capability cap_auth --depth 2
-paporot graph impact --capability cap_auth
-paporot graph evolution --capability cap_auth
-paporot graph cycles
-```
-
-### 人工反馈
-
-```bash
-paporot feedback approve cap_001
-paporot feedback reject cap_001 -r "误报"
-paporot feedback stats
-```
-
----
-
-## 三层行为版本控制（设计蓝图）
-
-```
-P0: State Machine (结构层)
-    BehaviorTrace → BehaviorStateGraph
-         │
-         │  StateFeatures + TransitionEventLog
-         ▼
-P1: Statistical Vector (几何层)
-    StateGraph → TrajectoryVector (10 维数值向量)
-         │
-         │  TrajectoryVector + co-change 证据
-         ▼
-P2: Coupling Graph (网络层)
-    Vectors → capability 行为耦合图
-```
-
-每层独立 decision logic：
-- **P0** 用 features 做判决（merge/split, threshold-based）
-- **P1** 用相同 features 做测量（projection, no threshold）
-- **P2** 用 co-change 定义边存在性，用 similarity 调制强度
-
-### P0：行为状态机
-
-```bash
-paporot state build --trace <id>
-paporot state show <trace_id>
-paporot state diff --trace-a <a> --trace-b <b>
-paporot state eval --trace <id>
-```
-
-### P1：轨迹向量（10 维）
-
-```bash
-paporot trajectory-vector build --trace <id>
-paporot trajectory-vector diff --v1 v1.json --v2 v2.json
-paporot trajectory-vector cluster --traces t1 t2 t3 t4
-paporot trajectory-vector anomaly --traces t1 t2 t3 t4 t5
-```
-
-| 字段 | 含义 | 类型 |
-|------|------|------|
-| `tool_entropy` | 工具序列熵 | f32 |
-| `phase_entropy` | 状态路径熵 | f32 |
-| `transition_entropy` | 图结构熵 | f32 |
-| `loop_ratio` | 状态级循环占比 | f32 |
-| `backtrack_ratio` | 时间回退占比 | f32 |
-| `burst_ratio` | 工具密度聚集程度 | f32 |
-| `state_stability_score` | 相邻状态连续性 | f32 |
-| `tool_distribution` | 工具类别分布 | SparseVector |
-| `state_distribution` | 状态阶段分布 | SparseVector |
-| `edit_intensity_curve` | 编辑强度曲线 | Vec\<f32\> |
-
-### P2：行为耦合图
-
-```bash
-paporot coupling build --pairs trace1:cap_auth trace2:cap_auth trace3:cap_profile
-paporot coupling analyze --cap cap_auth --pairs ...
-paporot coupling export --pairs ... --format mermaid
-paporot coupling impact --cap cap_auth --pairs ...
-```
-
----
-
-## 配置
-
-在项目根目录创建 `.Paporot/config.toml`（可选）：
-
-```toml
-[llm]
-api_key = ""                      # 或用环境变量 Paporot_API_KEY
-model = "deepseek-chat"
-endpoint = ""                     # 留空使用默认 https://api.deepseek.com/v1/chat/completions
-temperature = 0.3
-max_tokens = 4096
-
-[trace]
-auto_redact = false
-redact_auth_header = true
-redact_api_keys = true
-```
-
-环境变量：
-
-```bash
-export Paporot_API_KEY="sk-xxxxxxxxxxxxxxxx"
-```
-
-> 未配置 LLM 时，分析仍可运行，Skill 会返回 stub 输出。
 
 ---
 
 ## 安全模型
 
-- **文件隔离**：沙盒只能访问 `.Paporot/` 目录内的文件，host function 内置 canonicalize + starts_with 路径遍历防护
-- **网络限制**：仅 `host_llm_call` 可发起 HTTPS 请求，只能调用配置中的 LLM endpoint
-- **内存安全**：WASM 线性内存由 wasmtime 管理，写入前自动 grow，OOB 访问触发 wasm trap
+- **文件隔离**：沙盒仅能访问 `.Paporot/` 目录，host function 内置 canonicalize + starts_with 路径遍历防护
+- **网络限制**：仅 `host_llm_call` 可发起 HTTPS 请求，仅调用配置的 LLM endpoint
+- **内存安全**：WASM 线性内存由 wasmtime 管理，OOB 访问触发 wasm trap 而非 UB
+- **Skill 隔离**：每个 Skill 是独立的 `.wasm` 文件，独立执行，互不干扰
 
 ---
 
 ## 运行测试
 
 ```bash
-cargo test
-cargo test --lib
-cargo test --test integration_tests
-cargo test trajectory::p1
-cargo test trajectory::p2
-cargo test trajectory
+cargo test                          # 全部测试
+cargo test --lib                    # 库测试
+cargo test --test integration_tests # 集成测试
+cargo test trajectory::p1           # P1 轨迹向量测试
+cargo test trajectory::p2           # P2 耦合图测试
+cargo test trajectory               # 所有轨迹模块测试
 ```
+
+---
 
 ## 文档
 
-| 文档 | 路径 |
-|------|------|
-| 架构与用户手册 | `docs/architecture.md` |
-| P0 状态机 PRD | `docs/prd/PRD_P0_STATE_MACHINE.md` |
-| P1 轨迹向量 PRD | `docs/prd/PRD_P1_STV.md` |
-| P2 耦合图 PRD | `docs/prd/PRD_P2_BCG.md` |
-| P1+P2 测试说明书 | `docs/tests/TEST_SPEC_P1_P2.md` |
-| P1+P2 测试报告 | `docs/tests/TEST_REPORT_P1_P2.md` |
+| 文档 | 路径 | 说明 |
+|------|------|------|
+| 项目 README | `README.md` | 本文档 |
+| 架构详细文档 | `docs/architecture.md` | 完整架构与用户手册 |
+| 架构图 | `docs/paporot-architecture.excalidraw` | Excalidraw 源文件 |
+| P0 状态机 PRD | `docs/prd/PRD_P0_STATE_MACHINE.md` | 行为状态机设计 |
+| P1 轨迹向量 PRD | `docs/prd/PRD_P1_STV.md` | 10 维轨迹向量设计 |
+| P2 耦合图 PRD | `docs/prd/PRD_P2_BCG.md` | 行为耦合图设计 |
+| 系统设计 | `docs/prd/DESIGN.md` | 原始系统设计方案 |
+| P1+P2 测试说明书 | `docs/tests/TEST_SPEC_P1_P2.md` | 测试用例说明 |
+| P1+P2 测试报告 | `docs/tests/TEST_REPORT_P1_P2.md` | 测试执行结果 |
 
 ---
 

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paporot Benchmark — Paporot Benchmark Report</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card-bg: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --accent: #58a6ff;
+    --pass: #3fb950;
+    --warn: #d29922;
+    --fail: #f85149;
+    --semantic: #a371f7;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px; }
+  h1 { font-size: 24px; margin-bottom: 4px; }
+  h2 { font-size: 18px; margin: 24px 0 12px; color: var(--accent); }
+  .meta { color: var(--text-dim); font-size: 13px; margin-bottom: 20px; }
+  .stats { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px 24px; min-width: 120px; text-align: center; }
+  .stat-card .value { font-size: 28px; font-weight: 700; }
+  .stat-card .label { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+  .stat-card.pass .value { color: var(--pass); }
+  .stat-card.semantic .value { color: var(--semantic); }
+  .stat-card.fail .value { color: var(--fail); }
+  .stat-card.rate .value { color: var(--accent); }
+  .chart-row { display: flex; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
+  .chart-box { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; flex: 1; min-width: 300px; }
+  .chart-box canvas { max-height: 280px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 13px; }
+  th { text-align: left; padding: 8px 12px; border-bottom: 2px solid var(--border); color: var(--text-dim); font-weight: 600; }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  tr:hover { background: rgba(255,255,255,0.03); }
+  .pass { color: var(--pass); }
+  .semantic { color: var(--semantic); }
+  .fail { color: var(--fail); }
+  .fail-num { color: var(--fail); }
+  .sp { color: var(--semantic); }
+  .summary { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+  .summary p { margin-bottom: 8px; line-height: 1.6; }
+  .conclusion { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .conclusion h3 { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<h1>Paporot Benchmark Report</h1>
+<div class="meta">Paporot Benchmark &middot; 2026-06-21 09:15:22</div>
+
+<div class="stats">
+  <div class="stat-card pass"><div class="value">15</div><div class="label">Total Cases</div></div>
+  <div class="stat-card pass"><div class="value">15</div><div class="label">Pass + Semantic</div></div>
+  <div class="stat-card fail"><div class="value">0</div><div class="label">Failed</div></div>
+  <div class="stat-card rate"><div class="value">100.0%</div><div class="label">Pass Rate</div></div>
+</div>
+
+<div class="chart-row">
+  <div class="chart-box">
+    <h2>Verdict Distribution</h2>
+    <canvas id="pieChart"></canvas>
+  </div>
+  <div class="chart-box">
+    <h2>Per Suite Breakdown</h2>
+    <canvas id="barChart"></canvas>
+  </div>
+</div>
+
+<h2>Suite Summary</h2>
+<table>
+  <thead><tr><th>Suite</th><th>Total</th><th>Pass</th><th>Semantic</th><th>Fail</th><th>Rate</th><th>Duration</th></tr></thead>
+  <tbody><tr><td>capability</td><td>6</td><td>2</td><td class="sp">4 SP</td><td class="fail-num">0</td><td>100.0%</td><td>395ms</td></tr>
+<tr><td>diff</td><td>6</td><td>2</td><td class="sp">4 SP</td><td class="fail-num">0</td><td>100.0%</td><td>362ms</td></tr>
+<tr><td>regression</td><td>3</td><td>2</td><td class="sp">1 SP</td><td class="fail-num">0</td><td>100.0%</td><td>219ms</td></tr></tbody>
+</table>
+
+<h2>Case Details</h2>
+<table>
+  <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Verdict</th><th>Expected</th><th>Actual</th><th>Duration</th></tr></thead>
+  <tbody><tr class="semantic"><td>CAP_001</td><td>Add health endpoint and auth module</td><td>capability</td><td>SEMANTIC (100%)</td><td>4 capability expects</td><td>5 caps (5 new, 0 removed, 0 modified)</td><td>72ms</td></tr>
+<tr class="semantic"><td>CAP_002</td><td>Remove deprecated function</td><td>capability</td><td>SEMANTIC (100%)</td><td>4 capability expects</td><td>5 caps (0 new, 3 removed, 0 modified)</td><td>66ms</td></tr>
+<tr class="semantic"><td>CAP_003</td><td>Add MFA function (signature change)</td><td>capability</td><td>SEMANTIC (100%)</td><td>1 capability expects</td><td>4 caps (1 new, 2 removed, 0 modified)</td><td>64ms</td></tr>
+<tr class="pass"><td>CAP_004</td><td>Add security functions (crypto + auth)</td><td>capability</td><td>PASS</td><td>3 capability expects</td><td>3 caps (3 new, 0 removed, 0 modified)</td><td>62ms</td></tr>
+<tr class="pass"><td>CAP_005</td><td>Add User struct + Role enum + methods</td><td>capability</td><td>PASS</td><td>4 capability expects</td><td>4 caps (4 new, 0 removed, 0 modified)</td><td>64ms</td></tr>
+<tr class="semantic"><td>CAP_006</td><td>Add HTTP route handler function</td><td>capability</td><td>SEMANTIC (100%)</td><td>1 capability expects</td><td>2 caps (2 new, 0 removed, 0 modified)</td><td>65ms</td></tr>
+<tr class="semantic"><td>DIFF_001</td><td>Baseline diff: add vs remove</td><td>diff</td><td>SEMANTIC (100%)</td><td>4 capability expects</td><td>5 caps (5 new, 0 removed, 0 modified)</td><td>58ms</td></tr>
+<tr class="semantic"><td>DIFF_002</td><td>Reverse diff: remove vs add</td><td>diff</td><td>SEMANTIC (100%)</td><td>4 capability expects</td><td>5 caps (0 new, 3 removed, 0 modified)</td><td>60ms</td></tr>
+<tr class="pass"><td>DIFF_003</td><td>Diff: security functions addition</td><td>diff</td><td>PASS</td><td>3 capability expects</td><td>3 caps (3 new, 0 removed, 0 modified)</td><td>59ms</td></tr>
+<tr class="pass"><td>DIFF_004</td><td>Diff: user struct and enum addition</td><td>diff</td><td>PASS</td><td>4 capability expects</td><td>4 caps (4 new, 0 removed, 0 modified)</td><td>62ms</td></tr>
+<tr class="semantic"><td>DIFF_005</td><td>Diff: MFA function addition</td><td>diff</td><td>SEMANTIC (100%)</td><td>1 capability expects</td><td>4 caps (1 new, 2 removed, 0 modified)</td><td>57ms</td></tr>
+<tr class="semantic"><td>DIFF_006</td><td>Diff: full pipeline struct + enum + fn</td><td>diff</td><td>SEMANTIC (100%)</td><td>4 capability expects</td><td>12 caps (4 new, 5 removed, 0 modified)</td><td>63ms</td></tr>
+<tr class="pass"><td>REG_001</td><td>Regression: function count explosion</td><td>regression</td><td>PASS</td><td>4 capability expects</td><td>4 caps (4 new, 0 removed, 0 modified)</td><td>79ms</td></tr>
+<tr class="semantic"><td>REG_002</td><td>Regression: verify no degradation on single add</td><td>regression</td><td>SEMANTIC (100%)</td><td>4 capability expects</td><td>9 caps (8 new, 1 removed, 0 modified)</td><td>74ms</td></tr>
+<tr class="pass"><td>REG_003</td><td>Regression: security function add (no degrade)</td><td>regression</td><td>PASS</td><td>3 capability expects</td><td>3 caps (3 new, 0 removed, 0 modified)</td><td>64ms</td></tr></tbody>
+</table>
+
+<div class="conclusion">
+  <h3>Analysis Conclusion</h3>
+  <p>Benchmark run completed on 2026-06-21 09:15:22.</p>
+  <p>Total: 15 cases across 3 suites.</p>
+  <p>Pass rate: 100.0% (15/15 passing, 0 failed).</p>
+  <p style="margin-top:8px;color:var(--text-dim)">Categories verified: capability extraction (name/status/categories), diff summary (counts), regression detection.</p>
+  <p style="color:var(--text-dim)">Evaluator: Exact match (name, status, categories) → Semantic fallback (token Jaccard &gt; 0.85).</p>
+</div>
+
+<script>
+new Chart(document.getElementById('pieChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Exact Pass', 'Semantic Pass', 'Failed'],
+    datasets: [{ data: [6, 9, 0], backgroundColor: ['#3fb950','#a371f7','#f85149'], borderColor: '#0d1117' }]
+  },
+  options: { responsive: true, plugins: { legend: { labels: { color: '#c9d1d9' } } } }
+});
+new Chart(document.getElementById('barChart'), {
+  type: 'bar',
+  data: {
+    labels: ["capability","diff","regression"],
+    datasets: [
+      { label:'Pass', data:[2,2,2], backgroundColor:'#3fb950' },
+      { label:'Semantic', data:[4,4,1], backgroundColor:'#a371f7' },
+      { label:'Fail', data:[0,0,0], backgroundColor:'#f85149' }
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: { x:{ stacked:true, ticks:{ color:'#8b949e' } }, y:{ stacked:true, ticks:{ color:'#8b949e' } } },
+    plugins: { legend: { labels: { color:'#c9d1d9' } } }
+  }
+});
+</script>
+</body></html>

@@ -1,0 +1,31 @@
+id: DIFF_006
+name: "Diff: full pipeline struct + enum + fn"
+category: diff
+description: "验证 struct/struct_field/enum/enum_variant/function 混合的 diff"
+
+input:
+  type: files
+  before: "fixtures/after/add_health_and_auth.rs"
+  after: "fixtures/after/add_user_struct.rs"
+
+expected:
+  capabilities:
+    - name: "User"
+      status: new
+    - name: "Role"
+      status: new
+    - name: "create_user"
+      status: new
+    - name: "promote_to_admin"
+      status: new
+  diff:
+    added_count: 4
+    removed_count: 4
+    modified_count: 0
+  risk_level: medium
+
+metadata:
+  difficulty: medium
+  tags: [diff, full_pipeline]
+  human_verified: true
+  auto_generated: false

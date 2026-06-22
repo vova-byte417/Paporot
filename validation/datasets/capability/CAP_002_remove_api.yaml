@@ -1,0 +1,30 @@
+id: CAP_002
+name: "Remove deprecated function"
+category: capability
+description: "删除废弃的 public API 函数"
+
+input:
+  type: files
+  before: "fixtures/after/add_health_and_auth.rs"
+  after: "fixtures/before/simple_no_api.rs"
+
+expected:
+  capabilities:
+    - name: "health_check"
+      status: deleted
+      categories: []
+    - name: "login"
+      status: deleted
+      categories: []
+    - name: "Token"
+      status: deleted
+      categories: []
+    - name: "AuthError"
+      status: deleted
+      categories: []
+
+metadata:
+  difficulty: easy
+  tags: [removal, capability]
+  human_verified: true
+  auto_generated: false

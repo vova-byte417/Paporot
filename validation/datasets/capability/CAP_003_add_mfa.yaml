@@ -1,0 +1,21 @@
+id: CAP_003
+name: "Add MFA function (signature change)"
+category: capability
+description: "在已有 login 基础上新增 login_with_mfa 函数"
+
+input:
+  type: files
+  before: "fixtures/after/add_health_and_auth.rs"
+  after: "fixtures/after/add_mfa.rs"
+
+expected:
+  capabilities:
+    - name: "login_with_mfa"
+      status: new
+      categories: []
+
+metadata:
+  difficulty: easy
+  tags: [auth, mfa, capability]
+  human_verified: true
+  auto_generated: false

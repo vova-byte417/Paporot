@@ -1,0 +1,30 @@
+id: CAP_005
+name: "Add User struct + Role enum + methods"
+category: capability
+description: "新增 User 数据结构、Role 枚举和关联函数"
+
+input:
+  type: files
+  before: "fixtures/before/empty_types.rs"
+  after: "fixtures/after/add_user_struct.rs"
+
+expected:
+  capabilities:
+    - name: "User"
+      status: new
+      categories: []
+    - name: "Role"
+      status: new
+      categories: []
+    - name: "create_user"
+      status: new
+      categories: []
+    - name: "promote_to_admin"
+      status: new
+      categories: []
+
+metadata:
+  difficulty: medium
+  tags: [struct, enum, capability]
+  human_verified: true
+  auto_generated: false

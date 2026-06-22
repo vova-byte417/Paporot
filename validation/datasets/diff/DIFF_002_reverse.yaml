@@ -1,0 +1,30 @@
+id: DIFF_002
+name: "Reverse diff: remove vs add"
+category: diff
+description: "反向 diff 验证：用 before（有 API）到 after（无 API）"
+
+input:
+  type: files
+  before: "fixtures/after/add_health_and_auth.rs"
+  after: "fixtures/before/simple_no_api.rs"
+
+expected:
+  capabilities:
+    - name: "health_check"
+      status: deleted
+    - name: "login"
+      status: deleted
+    - name: "Token"
+      status: deleted
+    - name: "AuthError"
+      status: deleted
+  diff:
+    added_count: 0
+    removed_count: 4
+    modified_count: 0
+
+metadata:
+  difficulty: easy
+  tags: [diff, reverse]
+  human_verified: true
+  auto_generated: false

@@ -1,0 +1,27 @@
+id: CAP_004
+name: "Add security functions (crypto + auth)"
+category: capability
+description: "新增 hash_password, generate_token, verify_token 安全相关函数"
+
+input:
+  type: files
+  before: "fixtures/before/empty_security.rs"
+  after: "fixtures/after/add_security_fns.rs"
+
+expected:
+  capabilities:
+    - name: "hash_password"
+      status: new
+      categories: []
+    - name: "generate_token"
+      status: new
+      categories: []
+    - name: "verify_token"
+      status: new
+      categories: []
+
+metadata:
+  difficulty: easy
+  tags: [security, crypto, capability]
+  human_verified: true
+  auto_generated: false
