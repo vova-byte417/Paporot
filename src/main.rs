@@ -5,6 +5,7 @@
 //! CLI 参数通过 WASI args 透传到 .wasm 的 main()。
 
 use anyhow::{Context, Result};
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use wasmtime::*;
@@ -14,15 +15,64 @@ use wasmtime_wasi::preview1::WasiP1Ctx;
 mod config;
 mod verification;
 
-fn main() -> Result<()> {
-    let args: Vec<String> = std::env::args().collect();
+/// Native command handler type
+type CmdFn = fn(&[String], &Path) -> Result<()>;
 
-    // ── Native subcommands (no wasmtime needed) ──────────────────
-    if args.len() >= 2 && args[1] == "init" {
-        return cmd_init();
+/// v3: 构建 feedback index 并写入 .Paporot/work/feedback_index.json
+fn build_and_write_feedback_index(paporot_dir: &Path) -> Result<()> {
+    use paporot::feedback_loop::feedback_loader;
+    use paporot::storage::SnapshotStorage;
+
+    let snapshots_dir = paporot_dir.join("snapshots");
+    if !snapshots_dir.exists() {
+        eprintln!("[feedback] No snapshots directory, skipping");
+        return Ok(());
     }
 
+    let store = SnapshotStorage::new(&snapshots_dir);
+    let snapshot = match store.load_latest() {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("[feedback] No snapshot to load: {:?}", e);
+            return Ok(());
+        }
+    };
+
+    eprintln!("[feedback] Loaded snapshot {}", snapshot.version_id);
+    let (index, result) = feedback_loader::build_feedback_index(paporot_dir, &snapshot)?;
+    feedback_loader::write_feedback_index(paporot_dir, &index)?;
+
+    if result.rejected_count > 0 || result.suppression_count > 0 {
+        eprintln!(
+            "Feedback index: {} reviews ({} rejected), {} rule suppressions, {} file prefixes",
+            result.total_reviews, result.rejected_count,
+            result.suppression_count, result.prefix_count,
+        );
+    }
+
+    Ok(())
+}
+
+fn main() -> Result<()> {
+    let args: Vec<String> = std::env::args().collect();
     let paporot_dir = find_paporot_dir()?;
+
+    // ── Native command registry ──
+    let native_commands: HashMap<&str, CmdFn> = HashMap::from([
+        ("init", cmd_init as CmdFn),
+        ("feedback", cmd_feedback as CmdFn),
+        ("trace", cmd_native_stub as CmdFn),
+        ("trajectory", cmd_native_stub as CmdFn),
+    ]);
+
+    if args.len() >= 2 {
+        if let Some(handler) = native_commands.get(args[1].as_str()) {
+            let rest: Vec<String> = args[2..].to_vec();
+            return handler(&rest, &paporot_dir);
+        }
+    }
+
+    // ── WASM fallback (analyze, skill, snapshot, diff, coverage, ...) ──
 
     // Resolve paporot-core.wasm in order:
     //   1. .Paporot/bin/ (project-local install)
@@ -71,6 +121,14 @@ fn main() -> Result<()> {
     // ── Collect project source files into .Paporot/work/ ────────
     let project_root = paporot_dir.parent().unwrap_or(Path::new("."));
     collect_sources(project_root, &paporot_dir)?;
+    collect_git_diff(project_root, &paporot_dir)?;
+
+    // ── v3: Build feedback index for analyze ──
+    if args.len() >= 2 && args[1] == "analyze" {
+        if let Err(e) = build_and_write_feedback_index(&paporot_dir) {
+            eprintln!("Warning: Failed to build feedback index: {}", e);
+        }
+    }
 
     let mut linker = Linker::new(&engine);
     wasmtime_wasi::preview1::add_to_linker_sync(&mut linker, |h: &mut SandboxHost| &mut h.wasi)?;
@@ -85,16 +143,61 @@ fn main() -> Result<()> {
     let result = start.call(&mut store, ());
 
     match result {
-        Ok(()) => std::process::exit(0),
+        Ok(()) => {
+            // ── Post-processing: inject dashboard JSON into Vue HTML template ──
+            inject_dashboard_html(&paporot_dir);
+            std::process::exit(0);
+        }
         Err(e) => {
             // WASI proc_exit is a trap with i32 exit code
             if let Some(exit_code) = e.downcast_ref::<wasmtime_wasi::I32Exit>() {
+                inject_dashboard_html(&paporot_dir);
                 std::process::exit(exit_code.0);
             }
             // Otherwise it's a real error
             eprintln!("Fatal error: {:?}", e);
             std::process::exit(1);
         }
+    }
+}
+
+/// Reads dashboard_data.json written by the WASM pipeline and injects it
+/// into the pre-built Vue 3 SPA template to produce dashboard.html.
+fn inject_dashboard_html(paporot_dir: &PathBuf) {
+    let dash_data_path = paporot_dir.join("reports").join("dashboard_data.json");
+    let dash_html_path = paporot_dir.join("reports").join("dashboard.html");
+
+    // Read the dashboard_data.json
+    let json_str = match std::fs::read_to_string(&dash_data_path) {
+        Ok(s) => s,
+        Err(_) => return, // No data to inject
+    };
+
+    // Validate that it's valid JSON
+    if serde_json::from_str::<serde_json::Value>(&json_str).is_err() {
+        eprintln!("Warning: dashboard_data.json is not valid JSON, skipping HTML generation");
+        return;
+    }
+
+    // Embed Vue 3 runtime + HTML template at compile time (no CDN dependency)
+    let vue3_js = include_str!("../paporot-dashboard/vue3.prod.js");
+    let template = include_str!("../paporot-dashboard/dashboard_template.html");
+
+    // Inject Vue 3 inline
+    let html = template.replace(
+        "/* VUE3_INLINE */",
+        vue3_js,
+    );
+
+    // Inject JSON data into the template
+    let html = html.replace(
+        "window.__PAPOROT_DATA__ = undefined;",
+        &format!("window.__PAPOROT_DATA__ = {};", json_str),
+    );
+
+    match std::fs::write(&dash_html_path, &html) {
+        Ok(_) => eprintln!("[native] dashboard.html generated ({:.1}KB)", html.len() as f64 / 1024.0),
+        Err(e) => eprintln!("Warning: Failed to write dashboard.html: {}", e),
     }
 }
 
@@ -156,7 +259,7 @@ fn find_paporot_dir() -> Result<PathBuf> {
 }
 
 /// `Paporot init` — initialize .Paporot/ in current directory
-fn cmd_init() -> Result<()> {
+fn cmd_init(_args: &[String], _paporot_dir: &Path) -> Result<()> {
     let base = std::env::current_dir()?;
     let paporot_dir = base.join(".Paporot");
 
@@ -198,6 +301,82 @@ fn cmd_init() -> Result<()> {
     Ok(())
 }
 
+/// Native command stub — placeholder until subcommand is fully implemented
+fn cmd_native_stub(args: &[String], _paporot_dir: &Path) -> Result<()> {
+    let cmd = if args.is_empty() { "unknown" } else { &args[0] };
+    println!("Native command '{}' — not yet implemented (Phase 4)", cmd);
+    Ok(())
+}
+
+/// `Paporot feedback` — human-in-the-loop review via TOML
+fn cmd_feedback(args: &[String], paporot_dir: &Path) -> Result<()> {
+    use paporot::commands::feedback;
+    use paporot::storage::SnapshotStorage;
+    use paporot::types::*;
+
+    let reviews_dir = paporot_dir.join("reviews");
+    let snapshots_dir = paporot_dir.join("snapshots");
+
+    if args.is_empty() || args[0] == "help" {
+        println!("Paporot Feedback — Human Review System");
+        println!();
+        println!("Subcommands:");
+        println!("  feedback generate <version>  Generate review_<version>.toml");
+        println!("  feedback apply <toml_path>   Apply TOML review back to snapshot");
+        println!("  feedback stats               Show review statistics");
+        return Ok(());
+    }
+
+    match args[0].as_str() {
+        "generate" => {
+            let version = if args.len() > 1 { args[1].as_str() } else {
+                anyhow::bail!("Usage: Paporot feedback generate <version_id>");
+            };
+            let store = SnapshotStorage::new(&snapshots_dir);
+            let snapshot = store.load_by_version(version)?;
+            feedback::generate_review_toml(&snapshot, &reviews_dir)?;
+        }
+        "apply" => {
+            let toml_path = if args.len() > 1 { &args[1] } else {
+                anyhow::bail!("Usage: Paporot feedback apply <toml_file>");
+            };
+            let store = SnapshotStorage::new(&snapshots_dir);
+            let mut snapshot = store.load_latest()?;
+            let review_store = feedback::apply_review_toml(
+                &mut snapshot,
+                std::path::Path::new(toml_path),
+                &std::env::var("USER").unwrap_or_else(|_| "unknown".into()),
+            )?;
+            store.save(&snapshot)?;
+            review_store.save(&reviews_dir.join("reviews.json"))?;
+            println!("\n  Snapshot {} updated with {} reviews.",
+                snapshot.version_id, review_store.stats.total_reviews);
+        }
+        "stats" => {
+            let review_path = reviews_dir.join("reviews.json");
+            let fb = FeedbackStore::load_or_new(&review_path)?;
+            let total = fb.stats.total_reviews;
+            println!("Paporot Feedback Statistics");
+            println!("===========================");
+            println!("  Total reviews  : {}", total);
+            if total > 0 {
+                println!("  Approved       : {} ({:.1}%)", fb.stats.approved,
+                    100.0 * fb.stats.approved as f32 / total as f32);
+                println!("  Rejected       : {} ({:.1}%)", fb.stats.rejected,
+                    100.0 * fb.stats.rejected as f32 / total as f32);
+                println!("  Corrected      : {} ({:.1}%)", fb.stats.corrected,
+                    100.0 * fb.stats.corrected as f32 / total as f32);
+                println!("  Flagged        : {} ({:.1}%)", fb.stats.flagged,
+                    100.0 * fb.stats.flagged as f32 / total as f32);
+            }
+        }
+        _ => {
+            anyhow::bail!("Unknown feedback subcommand: {}. Try: generate, apply, stats", args[0]);
+        }
+    }
+    Ok(())
+}
+
 /// Copy contents of `src` directory into `dst` (non-recursive dir copy)
 fn copy_dir_contents(src: &Path, dst: &Path) -> Result<()> {
     for entry in fs::read_dir(src)? {
@@ -213,6 +392,43 @@ fn copy_dir_contents(src: &Path, dst: &Path) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// Collect git diff from project history into .Paporot/work/diff.txt
+///
+/// Falls back from broader ranges to narrower to ensure meaningful diff.
+fn collect_git_diff(project_root: &Path, paporot_dir: &Path) -> Result<()> {
+    let work = paporot_dir.join("work");
+    fs::create_dir_all(&work)?;
+
+    let ranges = ["HEAD~10..HEAD", "HEAD~5..HEAD", "HEAD~1..HEAD", "HEAD"];
+    let diff = ranges.iter()
+        .find_map(|r| collect_single_diff(project_root, r))
+        .unwrap_or_default();
+
+    fs::write(work.join("diff.txt"), &diff)?;
+    if diff.is_empty() {
+        eprintln!("[loader] Git diff: no diff generated (empty repo or no git?)");
+    } else {
+        eprintln!("[loader] Git diff collected: {} bytes", diff.len());
+    }
+    Ok(())
+}
+
+fn collect_single_diff(project_root: &Path, range: &str) -> Option<String> {
+    let output = std::process::Command::new("git")
+        .args(["diff", range, "-U3", "--", "."])
+        .current_dir(project_root)
+        .output()
+        .ok()?;
+
+    if output.status.success() && !output.stdout.is_empty() {
+        let diff = String::from_utf8_lossy(&output.stdout).to_string();
+        eprintln!("[loader] git diff {}: {} bytes", range, diff.len());
+        Some(diff)
+    } else {
+        None
+    }
 }
 
 /// Scan project root for source files and copy text files into .Paporot/work/sources/

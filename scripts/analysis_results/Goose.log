@@ -1,0 +1,16 @@
+  config  : loaded from /mnt/d/trae_projects/goose/.Paporot/config.toml
+[loader] Collected 35 source files into /mnt/d/trae_projects/goose/.Paporot/work/sources
+[sandbox] Found 6 skills
+[sandbox] DAG: 2 layers
+[sandbox] Running preprocessor (L1 AST + L2 Rules)...
+[sandbox] L0: 0 file changes parsed
+[sandbox] L1: 0 raw changes detected
+[sandbox] L2: 0 rule matches
+[sandbox] L3: 1 LLM fragments
+[sandbox] Preprocessor output written to work/preprocessor_output.json
+[sandbox] Preprocessor: 0 L1 changes, 0 L2 matches, 1 L3 fragments
+[sandbox] Layer 1: ["dependency_graph", "coverage_report", "repository-understanding", "modules", "runtime_flows", "architecture_doc", "repository_summary"]
+[sandbox] dependency_graph -> OK
+[sandbox] coverage_report -> OK
+[sandbox] repository-understanding -> OK
+[sandbox] modules -> OK

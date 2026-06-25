@@ -8,5 +8,6 @@ pub mod adapter_registry;
 pub mod adapters;
 pub mod error;
 pub mod storage;
+pub mod trace_snapshot_map;
 pub mod types;
 pub mod wrapper;

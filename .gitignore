@@ -15,6 +15,7 @@ crates/*/target/
 # External
 /ppt
 /docs
+/tests
 
 # IDE
 .vscode/

@@ -8,3 +8,16 @@
 
 pub mod host;
 pub mod pipeline;
+pub mod suppressor;
+
+// Phase 0: 共享类型
+pub mod types;
+
+// Phase 1: 预处理器（L1/L2）
+pub mod analysis;
+pub mod evidence;
+// pub mod report; // 待 Skill 输出格式确定后启用
+
+// Phase 2: Snapshot 引擎
+pub mod snapshot_store;
+pub mod snapshot_analyzer;

@@ -4,6 +4,13 @@ version = "0.1.0"
 edition = "2021"
 description = "AI 生成软件的行为版本控制与审计系统"
 
+[lib]
+name = "paporot"
+
+[[bin]]
+name = "paporot-cli"
+path = "src/main.rs"
+
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
@@ -24,6 +31,7 @@ thiserror = "1"
 semver = "1"
 wasmtime = "30"
 wasmtime-wasi = { version = "30", features = ["preview1"] }
+paporot-analysis-types = { path = "crates/paporot-analysis-types" }
 
 [dev-dependencies]
 tempfile = "3"

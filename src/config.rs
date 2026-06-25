@@ -262,7 +262,7 @@ mod tests {
     #[test]
     fn test_default_config() {
         let config = Config::default();
-        assert!(config.llm.endpoint.contains("openai"));
+        assert!(config.llm.endpoint.contains("deepseek"));
         assert_eq!(config.llm.temperature, 0.3);
         assert_eq!(config.storage.snapshots_dir, ".Paporot/snapshots");
         assert!(!config.trace.auto_redact);

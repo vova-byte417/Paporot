@@ -1,388 +1,12 @@
 //! Paporot 核心数据类型定义
 //!
-//! 对应 PRD 中 BehaviorSnapshot JSON Schema 的完整 Rust 表示。
-//!
-//! ## Schema 版本
-//! - v1: 原始版本（P0 之前）
-//! - v2: P1 新增 BehaviorContract + Condition + categories
-//! - v3: P2 新增 depends_on + depended_by + evolved_from
+//! Capability/Snapshot 类型统一在 paporot-analysis-types crate 中定义。
+//! 本地只保留 Feedback / TestMap 等模块私有类型。
 
 use serde::{Deserialize, Serialize};
 
-// ─── Capability ───────────────────────────────────────────────────────
-
-/// 最小可理解的行为单元
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Capability {
-    /// 唯一标识符，如 "cap_auth_001"
-    pub id: String,
-    /// 简短、面向动作的名称（最多 80 字符）
-    pub name: String,
-    /// 1-2 句用户/系统视角的清晰描述
-    pub description: String,
-    /// 行为状态
-    pub status: CapabilityStatus,
-    /// 主要影响的模块/服务
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub module: Option<String>,
-    /// 子模块
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub sub_modules: Vec<String>,
-    /// 置信度 0.0-1.0
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub confidence: Option<f32>,
-    /// 变更证据（文件路径、行号等）
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub evidence: Vec<String>,
-    /// 标签
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub tags: Vec<String>,
-
-    // ── P1: 行为合约 ──
-    /// 行为的可验证契约（API 端点/函数签名/数据结构等）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub contract: Option<BehaviorContract>,
-    /// 前置条件
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub preconditions: Vec<Condition>,
-    /// 后置条件
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub postconditions: Vec<Condition>,
-    /// 不变量
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub invariants: Vec<Condition>,
-    /// 行为类别
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub categories: Vec<CapabilityCategory>,
-
-    // ── P2: 依赖关系 ──
-    /// 我依赖的其他能力（上游）
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub depends_on: Vec<DependsOn>,
-    /// 我被哪些能力依赖（下游，由 Paporot graph 自动填充）
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub depended_by: Vec<DependedBy>,
-    /// 该能力的上一个版本（跨快照演化链）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub evolved_from: Option<CapabilityRef>,
-
-    // ── P4 预埋：执行轨迹关联 ──
-    /// 关联的 Execution Trace ID 列表（弱关联，可选）
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub evidence_trace_ids: Vec<String>,
-
-    // ── P4 预埋：人机验证 ──
-    /// 验证者标识
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub verified_by: Option<String>,
-    /// 验证时间 ISO-8601
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub verified_at: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-pub enum CapabilityStatus {
-    New,
-    Modified,
-    Deleted,
-    Unchanged,
-}
-
-impl Capability {
-    /// 获取人类可读的状态名称
-    pub fn status_name(&self) -> &str {
-        match self.status {
-            CapabilityStatus::New => "新增",
-            CapabilityStatus::Modified => "修改",
-            CapabilityStatus::Deleted => "删除",
-            CapabilityStatus::Unchanged => "未变化",
-        }
-    }
-}
-
-// ─── PRD Coverage ──────────────────────────────────────────────────────
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct PrdCoverage {
-    /// 覆盖率百分比 0-100
-    pub percentage: f32,
-    /// PRD 总条目数
-    pub total_items: u32,
-    /// 已覆盖条目数
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub covered_items: Option<u32>,
-    /// 逐项详情
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub details: Vec<PrdCoverageDetail>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct PrdCoverageDetail {
-    pub prd_id: String,
-    pub requirement: String,
-    pub status: CoverageStatus,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub mapped_capabilities: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub evidence: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub confidence: Option<f32>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum CoverageStatus {
-    Pass,
-    Partial,
-    Fail,
-    NotDetected,
-}
-
-// ─── Regression ────────────────────────────────────────────────────────
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Regression {
-    pub status: RegressionStatus,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub detected_regressions: Vec<RegressionItem>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum RegressionStatus {
-    Pass,
-    Fail,
-    Warning,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct RegressionItem {
-    pub workflow: String,
-    pub previous_status: String,
-    pub current_status: String,
-    pub description: String,
-    pub severity: Severity,
-}
-
-// ─── Risk ──────────────────────────────────────────────────────────────
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct RiskAssessment {
-    pub level: RiskLevel,
-    pub score: u8,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub factors: Vec<RiskFactor>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub mitigations: Vec<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-#[serde(rename_all = "UPPERCASE")]
-pub enum RiskLevel {
-    Low,
-    Medium,
-    High,
-    Critical,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct RiskFactor {
-    pub category: String,
-    pub description: String,
-    pub severity: Severity,
-}
-
-// ─── Shared Enums ─────────────────────────────────────────────────────
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-#[serde(rename_all = "UPPERCASE")]
-pub enum Severity {
-    Low,
-    Medium,
-    High,
-}
-
-// ─── Behavior Snapshot ─────────────────────────────────────────────────
-
-/// 版本化的行为画像 — Paporot 的核心数据对象
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct BehaviorSnapshot {
-    /// Schema 版本号（当前 = 3）
-    #[serde(default = "default_schema_version")]
-    pub schema_version: u32,
-    /// Paporot 内部版本 ID，如 "v42"
-    pub version_id: String,
-    /// 关联的 Git commit SHA
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub git_commit: Option<String>,
-    /// Git ref（分支/标签名）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub git_ref: Option<String>,
-    /// ISO-8601 时间戳
-    pub timestamp: String,
-    /// 人类可读的版本说明
-    pub message: String,
-    /// 行为能力列表
-    pub capabilities: Vec<Capability>,
-    /// PRD 覆盖率信息
-    pub prd_coverage: PrdCoverage,
-    /// 回归检测结果（可选，由 Paporot regression 填充）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub regression: Option<Regression>,
-    /// 风险评估（可选，由 Paporot risk 填充）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub risk: Option<RiskAssessment>,
-    /// 扩展元数据
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<serde_json::Value>,
-}
-
-// ─── Behavior Diff ─────────────────────────────────────────────────────
-
-/// 行为差异对比结果（用于 Paporot diff 输出）
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct BehaviorDiff {
-    pub from_version: String,
-    pub to_version: String,
-    pub timestamp: String,
-    pub added: Vec<Capability>,
-    pub modified: Vec<Capability>,
-    pub deleted: Vec<Capability>,
-    pub unchanged: Vec<Capability>,
-    pub impact_summary: String,
-    pub risks_and_notes: Vec<String>,
-}
-
-impl BehaviorSnapshot {
-    /// 从 JSON 字符串反序列化
-    pub fn from_json(json: &str) -> serde_json::Result<Self> {
-        serde_json::from_str(json)
-    }
-
-    /// 序列化为 JSON 字符串
-    pub fn to_json(&self) -> serde_json::Result<String> {
-        serde_json::to_string_pretty(self)
-    }
-}
-
-// ─── P1: 行为合约类型 ─────────────────────────────────────────────────
-
-/// 行为契约 —— 能力的可验证接口定义
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum BehaviorContract {
-    /// HTTP API 端点
-    HttpEndpoint {
-        method: String,
-        path_template: String,
-        auth_required: bool,
-    },
-    /// 函数
-    Function {
-        name: String,
-        visibility: String,
-        is_async: bool,
-    },
-    /// 公开数据结构
-    DataSchema {
-        kind: SchemaKind,
-        derives: Vec<String>,
-    },
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-pub enum SchemaKind {
-    Struct,
-    Enum,
-    TypeAlias,
-}
-
-/// 前置/后置/不变量条件
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Condition {
-    pub kind: ConditionKind,
-    pub expression: String,
-    pub severity: Severity,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "snake_case")]
-pub enum ConditionKind {
-    Precondition,
-    Postcondition,
-    Invariant,
-}
-
-/// 行为类别
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum CapabilityCategory {
-    Functional,
-    Security,
-    Performance,
-    Ux,
-    Operational,
-    DataIntegrity,
-}
-
-// ─── P2: 依赖图类型 ───────────────────────────────────────────────────
-
-/// 能力引用（可跨快照）
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct CapabilityRef {
-    pub capability_id: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub snapshot_version: Option<String>,
-}
-
-/// 依赖关系（上游）
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DependsOn {
-    pub target: CapabilityRef,
-    pub relation: DependencyRelation,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub via: Option<String>,
-    pub confidence: f32,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub source: Option<RelationSource>,
-}
-
-/// 被依赖记录（下游视图）
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DependedBy {
-    pub source: CapabilityRef,
-    pub relation: DependencyRelation,
-    pub confidence: f32,
-}
-
-/// 依赖关系类型
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum DependencyRelation {
-    Calls,
-    ConsumesEvent,
-    ReadsData,
-    WritesData,
-    PostconditionDepends,
-    SharesState,
-    ImplementsOrComposes,
-}
-
-/// 依赖关系来源
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum RelationSource {
-    AstInferred,
-    RuleInferred,
-    LlmInferred,
-    Manual,
-}
-
-fn default_schema_version() -> u32 {
-    3
-}
+// Re-export shared types
+pub use paporot_analysis_types::*;
 
 // ─── P3: 人机验证回路类型 ───────────────────────────────────────────────
 
@@ -410,6 +34,20 @@ pub struct BehaviorReview {
     /// 标签
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
+
+    // ── v3 Loop Engineering: 溯源字段 ──
+    /// 触发此 Capability 的 L2 规则 ID 列表
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub triggered_by_rules: Vec<String>,
+    /// 原始符号名（从 RawChange.symbol_name 反向映射）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_symbol: Option<String>,
+    /// 原始文件路径（从 RawChange.file_path 反向映射）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_file: Option<String>,
+    /// 原始变更类型（从 RawChange.change_type 反向映射）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_change_type: Option<String>,
 }
 
 /// 审查结论
@@ -671,6 +309,8 @@ mod tests {
                 evidence_trace_ids: vec![],
                 verified_by: None,
                 verified_at: None,
+                source_change_type: None,
+                triggered_by_rules: vec![],
             }],
             prd_coverage: PrdCoverage {
                 percentage: 100.0,
@@ -703,6 +343,10 @@ mod tests {
             corrected: None,
             reviewed_at: "2026-06-11T10:00:00Z".into(),
             tags: vec!["verified".into()],
+            triggered_by_rules: vec![],
+            source_symbol: None,
+            source_file: None,
+            source_change_type: None,
         };
         let json = serde_json::to_string(&review).unwrap();
         let parsed: BehaviorReview = serde_json::from_str(&json).unwrap();
@@ -739,6 +383,10 @@ mod tests {
                     verdict: ReviewVerdict::Approved,
                     comment: None, corrected: None,
                     reviewed_at: "t".into(), tags: vec![],
+                    triggered_by_rules: vec![],
+                    source_symbol: None,
+                    source_file: None,
+                    source_change_type: None,
                 },
                 BehaviorReview {
                     review_id: "r2".into(),
@@ -748,6 +396,10 @@ mod tests {
                     verdict: ReviewVerdict::Rejected,
                     comment: Some("no".into()), corrected: None,
                     reviewed_at: "t".into(), tags: vec![],
+                    triggered_by_rules: vec![],
+                    source_symbol: None,
+                    source_file: None,
+                    source_change_type: None,
                 },
             ],
             stats: FeedbackStats { total_reviews: 2, approved: 1, rejected: 1, corrected: 0, flagged: 0 },
@@ -846,6 +498,7 @@ mod tests {
             preconditions: vec![], postconditions: vec![], invariants: vec![],
             categories: vec![], depends_on: vec![], depended_by: vec![],
             evolved_from: None, evidence_trace_ids: vec![], verified_by: None, verified_at: None,
+            source_change_type: None, triggered_by_rules: vec![],
         }
     }
 }

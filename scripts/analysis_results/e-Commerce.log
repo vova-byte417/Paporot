@@ -1,0 +1,21 @@
+  config  : loaded from /mnt/d/trae_projects/test_space/e-commerce/.Paporot/config.toml
+[loader] Collected 41 source files into /mnt/d/trae_projects/test_space/e-commerce/.Paporot/work/sources
+[sandbox] Found 7 skills
+[sandbox] DAG: 3 layers
+[sandbox] Running preprocessor (L1 AST + L2 Rules)...
+[sandbox] L0: 0 file changes parsed
+[sandbox] L1: 0 raw changes detected
+[sandbox] L2: 0 rule matches
+[sandbox] L3: 1 LLM fragments
+[sandbox] Preprocessor output written to work/preprocessor_output.json
+[sandbox] Preprocessor: 0 L1 changes, 0 L2 matches, 1 L3 fragments
+[sandbox] Layer 1: ["modules", "architecture_doc", "dependency_graph", "repository_summary", "runtime_flows", "coverage_report", "repository-understanding"]
+[sandbox] modules -> OK
+[sandbox] architecture_doc -> OK
+[sandbox] dependency_graph -> OK
+[sandbox] repository_summary -> OK
+[sandbox] runtime_flows -> OK
+[sandbox] coverage_report -> OK
+[sandbox] repository-understanding -> OK
+[sandbox] Layer 2: ["dependency-analysis", "runtime-flow-analysis", "module-discovery", "architecture-doc-generator", "verification-runner"]
+[sandbox] dependency-analysis -> OK

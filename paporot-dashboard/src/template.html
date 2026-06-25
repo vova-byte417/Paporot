@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paporot — Behavior Analysis Dashboard</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  ${CSS}
+</head>
+<body>
+  <div id="app">
+    <div v-if="data">
+      <!-- Top Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1 class="topbar-title"><span class="title-icon">◈</span>{{ data.project_name }}</h1>
+          <div class="topbar-meta">
+            <span>{{ data.analyzed_at }}</span>
+            <span v-if="data.git_commit" class="meta-sep">·</span>
+            <code v-if="data.git_commit">{{ data.git_commit.slice(0, 7) }}</code>
+          </div>
+        </div>
+        <div class="topbar-stats">
+          <div class="top-stat">
+            <div class="top-stat-value" style="color:var(--accent)">{{ data.l1_analysis.total_changes }}</div>
+            <div class="top-stat-label">行为变更</div>
+          </div>
+          <div class="top-stat">
+            <div class="top-stat-value" style="color:var(--success)">+{{ addedCount }}</div>
+            <div class="top-stat-label">新增能力</div>
+          </div>
+          <div class="top-stat">
+            <div class="top-stat-value" style="color:var(--danger)">−{{ removedCount }}</div>
+            <div class="top-stat-label">移除能力</div>
+          </div>
+          <div class="top-stat">
+            <div class="top-stat-value" style="color:var(--purple)">{{ suppressedCount }}</div>
+            <div class="top-stat-label">已抑制</div>
+          </div>
+          <span :class="['badge', riskBadgeClass]">{{ riskLevel }}</span>
+        </div>
+      </header>
+
+      <!-- Tab Navigation -->
+      <nav class="tab-nav">
+        <button @click="tab='behavior'" :class="['tab-btn', {active:tab==='behavior'}]">
+          <span class="tab-icon">◆</span> 行为变更 <span class="tab-count">{{ data.l1_analysis.total_changes }}</span>
+        </button>
+        <button v-if="data.feedback_loop.loaded" @click="tab='feedback'" :class="['tab-btn', {active:tab==='feedback'}]">
+          <span class="tab-icon">↻</span> 反馈回路 <span class="tab-count">{{ feedbackSuppressed }}</span>
+        </button>
+        <button v-if="data.snapshot" @click="tab='snapshot'" :class="['tab-btn', {active:tab==='snapshot'}]">
+          <span class="tab-icon">◷</span> 版本历史 <span class="tab-count">{{ data.snapshot?.version_count }}</span>
+        </button>
+        <button v-if="data.trace_association?.matched_traces?.length" @click="tab='trace'" :class="['tab-btn', {active:tab==='trace'}]">
+          <span class="tab-icon">◉</span> Agent 轨迹 <span class="tab-count">{{ data.trace_association?.matched_traces?.length }}</span>
+        </button>
+      </nav>
+
+      <!-- Behavior Changes Tab -->
+      <main v-if="tab==='behavior'" class="tab-content">
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-value" style="color:var(--accent)">{{ data.l1_analysis.total_changes }}</div><div class="stat-label">行为变更总数</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--success)">{{ conf.high }}</div><div class="stat-label">高置信度 (≥85%)</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--warning)">{{ conf.medium }}</div><div class="stat-label">中置信度 (50-85%)</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--danger)">{{ conf.low }}</div><div class="stat-label">低置信度 (&lt;50%)</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--purple)">{{ data.l2_analysis.total_matches }}</div><div class="stat-label">规则命中 (L2)</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--success)">{{ cleanChanges.length }}</div><div class="stat-label">无害变更</div></div>
+        </div>
+
+        <div class="two-col">
+          <!-- Directory Breakdown -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">代码目录变更分布</span>
+              <span class="card-subtitle">{{ topDirs.length }} 个目录受影响</span>
+            </div>
+            <div class="dir-list">
+              <div v-for="d in topDirs" :key="d.directory" class="dir-row">
+                <div class="dir-name">{{ d.directory }}</div>
+                <div class="dir-bar-track"><div class="dir-bar-fill" :style="{width: Math.max(d.changes/maxDir*100, 3)+'%'}"></div></div>
+                <div class="dir-stats">
+                  <span v-if="d.added" class="dir-stat-add">+{{ d.added }}</span>
+                  <span v-if="d.removed" class="dir-stat-del">−{{ d.removed }}</span>
+                  <span v-if="d.modified" class="dir-stat-mod">~{{ d.modified }}</span>
+                  <span class="dir-stat-files">{{ d.file_count }} files</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Severity -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">风险分级</span>
+              <span class="card-subtitle">L2 规则引擎分析结果</span>
+            </div>
+            <div v-if="data.l2_analysis.total_matches > 0">
+              <div class="sev-label">严重程度分布</div>
+              <div class="sev-bars">
+                <div v-for="s in sevStats" :key="s.severity" class="sev-row">
+                  <span class="sev-name" :style="{color:sevColors[s.severity]}">{{ s.severity }}</span>
+                  <div class="sev-track"><div class="sev-fill" :style="{width: (s.count/data.l2_analysis.total_matches*100).toFixed(0)+'%', background:sevColors[s.severity]}"></div></div>
+                  <span class="sev-count">{{ s.count }}</span>
+                </div>
+              </div>
+              <div class="sev-label" style="margin-top:12px">规则类别</div>
+              <div class="cat-tags">
+                <span v-for="c in catStats" :key="c.category" class="cat-tag">{{ c.category }} <span class="cat-count">{{ c.count }}</span></span>
+              </div>
+            </div>
+            <div v-else class="empty-state">
+              <div class="empty-state-icon">✓</div>
+              <h3>未命中安全/破坏性规则</h3>
+              <p>所有行为变更通过了确定性规则检查</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Changes Table -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">行为变更明细</span>
+            <span class="card-subtitle">{{ data.l1_analysis.total_changes }} 项变更</span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>符号</th><th>文件</th><th>变更类型</th><th>置信度</th><th>规则</th><th>状态</th></tr></thead>
+              <tbody>
+                <tr v-for="c in data.l1_analysis.changes" :key="c.id">
+                  <td><code class="symbol-code">{{ c.symbol }}</code></td>
+                  <td class="file-cell" :title="c.file">{{ shortFile(c.file) }}</td>
+                  <td><span :class="'badge '+changeBadge(c.change_type)">{{ changeLabel(c.change_type) }}</span></td>
+                  <td>
+                    <div class="conf-cell">
+                      <div class="conf-bar-track"><div class="conf-bar-fill" :style="{width: (c.confidence*100).toFixed(0)+'%', background:confColor(c.confidence)}"></div></div>
+                      <span class="conf-num">{{ (c.confidence*100).toFixed(0) }}%</span>
+                    </div>
+                  </td>
+                  <td><span v-for="r in c.rules" class="tag" style="color:var(--purple);background:rgba(163,113,247,0.1)">{{ r }}</span><span v-if="!c.rules.length">—</span></td>
+                  <td>
+                    <span v-if="c.suppressed || c.tags.some(t=>t.includes('suppress')||t.includes('reject'))" class="badge badge-purple">{{ suppLabel(c) }}</span>
+                    <span v-else-if="c.rules.length" class="badge badge-warning">需关注</span>
+                    <span v-else class="badge badge-success">正常</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+
+      <!-- Feedback Loop Tab -->
+      <main v-if="tab==='feedback' && data.feedback_loop.loaded" class="tab-content">
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-value" style="color:var(--purple)">{{ data.feedback_loop.exact_reject_count }}</div><div class="stat-label">精确拒绝记录</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--accent)">{{ data.feedback_loop.rule_suppression_count }}</div><div class="stat-label">规则级抑制</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--warning)">{{ exactHit }}</div><div class="stat-label">本次精确命中</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--accent)">{{ ruleHit }}</div><div class="stat-label">本次规则命中</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">三层抑制机制</span></div>
+          <div class="layers-visual">
+            <div class="layer-row">
+              <div class="layer-badge layer-l1">L1</div>
+              <div class="layer-body"><div class="layer-title">精确匹配抑制</div><div class="layer-desc">(符号, 文件, 变更类型) 三元组精确匹配历史 reject → 置信度降至 0.2</div></div>
+              <div class="layer-count">{{ exactHit }}</div>
+            </div>
+            <div class="layer-arrow">↓</div>
+            <div class="layer-row">
+              <div class="layer-badge layer-l2">L2</div>
+              <div class="layer-body"><div class="layer-title">规则级抑制</div><div class="layer-desc">(规则ID, 文件glob) 匹配 suppressions.toml → 置信度降至 0.2</div></div>
+              <div class="layer-count">{{ ruleHit }}</div>
+            </div>
+            <div class="layer-arrow">↓</div>
+            <div class="layer-row">
+              <div class="layer-badge layer-l3">L3</div>
+              <div class="layer-body"><div class="layer-title">文件前缀警告</div><div class="layer-desc">文件路径部分匹配拒绝历史 → 仅打标签</div></div>
+              <div class="layer-count">{{ warnHit }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="fbSuppressed.length" class="card">
+          <div class="card-header"><span class="card-title">本次被抑制的变更</span></div>
+          <div class="table-wrap"><table class="data-table">
+            <thead><tr><th>符号</th><th>文件</th><th>抑制层</th><th>原因</th></tr></thead>
+            <tbody><tr v-for="c in fbSuppressed" :key="c.id">
+              <td><code class="symbol-code">{{ c.symbol }}</code></td>
+              <td class="file-cell" :title="c.file">{{ shortFile(c.file) }}</td>
+              <td><span :class="'badge '+(c.suppressed?.level==='Exact'?'badge-purple':c.suppressed?.level==='Rule'?'badge-info':'badge-warning')">{{ c.suppressed?.level === 'Exact' ? '精确匹配' : c.suppressed?.level === 'Rule' ? '规则抑制' : '警告' }}</span></td>
+              <td style="font-size:12px;color:var(--text-secondary)">{{ c.suppressed?.reason }}</td>
+            </tr></tbody>
+          </table></div>
+        </div>
+
+        <div v-if="activeRules.length" class="card">
+          <div class="card-header"><span class="card-title">活跃的抑制规则</span></div>
+          <div class="table-wrap"><table class="data-table">
+            <thead><tr><th>规则ID</th><th>文件模式</th><th>效果</th><th>命中次数</th><th>原因</th></tr></thead>
+            <tbody><tr v-for="r in activeRules" :key="r.rule_id">
+              <td><code style="color:var(--purple);font-size:12px">{{ r.rule_id }}</code></td>
+              <td><code style="font-size:11px;color:var(--text-secondary)">{{ r.file_pattern }}</code></td>
+              <td><span :class="'badge '+(r.effect==='suppress'?'badge-purple':'badge-warning')">{{ r.effect==='suppress'?'抑制':'提醒' }}</span></td>
+              <td style="font-family:var(--font-mono);font-size:12px">{{ r.hit_count }}</td>
+              <td style="font-size:12px;color:var(--text-secondary);max-width:300px">{{ r.reason }}</td>
+            </tr></tbody>
+          </table></div>
+        </div>
+      </main>
+
+      <!-- Feedback empty state -->
+      <main v-if="tab==='feedback' && !data.feedback_loop.loaded" class="tab-content">
+        <div class="empty-state"><div class="empty-state-icon">↻</div><h3>反馈回路未激活</h3><p>运行 <code>paporot feedback generate</code> 创建审查文件</p></div>
+      </main>
+
+      <!-- Snapshot Tab -->
+      <main v-if="tab==='snapshot' && data.snapshot" class="tab-content">
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-value" style="color:var(--accent)">{{ data.snapshot.version_count }}</div><div class="stat-label">版本总数</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--success)">{{ data.snapshot.current_diff?.added?.length || 0 }}</div><div class="stat-label">新增能力</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--warning)">{{ data.snapshot.current_diff?.modified?.length || 0 }}</div><div class="stat-label">修改能力</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--danger)">{{ data.snapshot.current_diff?.deleted?.length || 0 }}</div><div class="stat-label">删除能力</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">版本时间线</span></div>
+          <div class="timeline">
+            <div v-for="(v,i) in data.snapshot.versions.slice().reverse()" :class="['tl-item', {current: v.version_id===data.snapshot.current_version}]">
+              <div class="tl-dot"></div>
+              <div v-if="i < data.snapshot.versions.length-1" class="tl-line"></div>
+              <div class="tl-content">
+                <div class="tl-header">
+                  <span class="tl-version">{{ v.version_id }}</span>
+                  <span v-if="v.version_id===data.snapshot.current_version" class="badge badge-info">当前</span>
+                </div>
+                <div class="tl-meta"><span>{{ v.created_at }}</span><code v-if="v.git_commit">{{ v.git_commit.slice(0,7) }}</code><span>· {{ v.capability_count }} 能力</span></div>
+                <div v-if="v.message" class="tl-msg">{{ v.message }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <main v-if="tab==='snapshot' && !data.snapshot" class="tab-content">
+        <div class="empty-state"><div class="empty-state-icon">◷</div><h3>尚无版本快照</h3><p>运行 <code>paporot analyze</code> 将自动创建行为快照</p></div>
+      </main>
+
+      <!-- Trace Tab -->
+      <main v-if="tab==='trace' && data.trace_association" class="tab-content">
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-value" style="color:var(--accent)">{{ data.trace_association.matched_traces.length }}</div><div class="stat-label">匹配的 Agent Trace</div></div>
+          <div v-if="data.trace_association.trajectory_analysis" class="stat-card">
+            <div class="stat-value" :style="{color:scoreClr(data.trace_association.trajectory_analysis.tool_churn_score)}">{{ (data.trace_association.trajectory_analysis.tool_churn_score*100).toFixed(0) }}%</div>
+            <div class="stat-label">工具变更率</div>
+          </div>
+          <div v-if="data.trace_association.trajectory_analysis" class="stat-card">
+            <div class="stat-value" :style="{color:scoreClr(data.trace_association.trajectory_analysis.phase_reorder_score)}">{{ (data.trace_association.trajectory_analysis.phase_reorder_score*100).toFixed(0) }}%</div>
+            <div class="stat-label">阶段重排率</div>
+          </div>
+          <div v-if="data.trace_association.trajectory_analysis" class="stat-card">
+            <div class="stat-value" :style="{color:scoreClr(data.trace_association.trajectory_analysis.capability_shift_score)}">{{ (data.trace_association.trajectory_analysis.capability_shift_score*100).toFixed(0) }}%</div>
+            <div class="stat-label">能力漂移率</div>
+          </div>
+        </div>
+      </main>
+
+      <main v-if="tab==='trace' && !data.trace_association" class="tab-content">
+        <div class="empty-state"><div class="empty-state-icon">◉</div><h3>暂无 Agent Trace 关联</h3><p>导入 Agent 执行轨迹以启用行为趋势分析</p></div>
+      </main>
+
+      <!-- Skills -->
+      <div class="card" style="margin-top:20px" v-if="data.skills.length">
+        <div class="card-header">
+          <span class="card-title">分析管线输出</span>
+          <span class="card-subtitle">{{ data.skills.length }} 个 Skill · {{ data.skills.filter(s=>s.status==='ok').length }} 完成</span>
+        </div>
+        <div class="skills-list">
+          <div v-for="s in data.skills" :class="['skill-item', s.status]" @click="toggleSkill(s.name)">
+            <div class="skill-head">
+              <div class="skill-info">
+                <span class="skill-icon">{{ skillIcon(s.name) }}</span>
+                <div>
+                  <div class="skill-name">{{ s.name }}</div>
+                  <div class="skill-result" v-if="s.output_summary">{{ summarize(s.output_summary) }}</div>
+                  <div class="skill-result" v-else style="color:var(--text-tertiary)">{{ s.status==='skipped'?'上游依赖未满足':'无输出' }}</div>
+                </div>
+              </div>
+              <div class="skill-meta">
+                <span :class="'badge '+(s.status==='ok'?'badge-success':s.status==='failed'?'badge-danger':'badge-info')">{{ s.status==='ok'?'完成':s.status==='failed'?'失败':'跳过' }}</span>
+                <span class="skill-dur">{{ s.duration_ms }}ms</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-footer">Paporot Behavior Analysis · {{ data.analyzed_at }}</div>
+    </div>
+
+    <div v-else class="no-data">
+      <div class="no-data-icon">⚠</div>
+      <h2>No Analysis Data</h2>
+      <p>Run <code>paporot analyze</code> to generate a dashboard.</p>
+    </div>
+  </div>
+
+  ${SCRIPT}
+</body>
+</html>

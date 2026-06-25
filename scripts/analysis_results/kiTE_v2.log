@@ -1,0 +1,23 @@
+  config  : loaded from /mnt/d/AI/kite/.Paporot/config.toml
+[loader] Collected 14 source files into /mnt/d/AI/kite/.Paporot/work/sources
+[sandbox] Found 6 skills
+[sandbox] DAG: 2 layers
+[sandbox] Running preprocessor (L1 AST + L2 Rules)...
+[sandbox] L0: 0 file changes parsed
+[sandbox] L1: 0 raw changes detected
+[sandbox] L2: 0 rule matches
+[sandbox] L3: 1 LLM fragments
+[sandbox] Preprocessor output written to work/preprocessor_output.json
+[sandbox] Preprocessor: 0 L1 changes, 0 L2 matches, 1 L3 fragments
+[sandbox] Layer 1: ["repository-understanding", "modules", "repository_summary", "dependency_graph", "architecture_doc", "runtime_flows", "coverage_report"]
+[sandbox] repository-understanding -> OK
+[sandbox] modules -> OK
+[sandbox] repository_summary -> OK
+[sandbox] dependency_graph -> OK
+[sandbox] architecture_doc -> OK
+[sandbox] runtime_flows -> OK
+[sandbox] coverage_report -> OK
+[sandbox] Layer 2: ["dependency-analysis", "module-discovery", "runtime-flow-analysis", "architecture-doc-generator", "verification-runner"]
+[sandbox] dependency-analysis -> OK
+[sandbox] module-discovery -> OK
+[sandbox] runtime-flow-analysis -> OK
