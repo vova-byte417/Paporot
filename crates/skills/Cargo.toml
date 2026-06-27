@@ -28,10 +28,6 @@ path = "src/bin/behavior_boundary_discovery.rs"
 name = "architecture_doc_generator"
 path = "src/bin/architecture_doc_generator.rs"
 
-[[bin]]
-name = "verification_runner"
-path = "src/bin/verification_runner.rs"
-
 [dependencies]
 paporot-skill-sdk = { path = "../skill-sdk" }
 serde = { version = "1", features = ["derive"] }
