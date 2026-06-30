@@ -3,9 +3,9 @@ members = ["crates/*"]
 
 [package]
 name = "Paporot"
-version = "0.1.0"
+version = "0.4.0"
 edition = "2021"
-description = "AI 生成软件的行为版本控制与审计系统"
+description = "AI Coding Agent Behavior Evaluation Platform"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
@@ -21,9 +21,13 @@ dirs = "5"
 toml = "0.8"
 regex = "1"
 rusqlite = { version = "0.31", features = ["bundled"] }
+axum = "0.7"
+tower-http = { version = "0.5", features = ["fs", "cors"] }
 inventory = "0.3"
 thiserror = "1"
 semver = "1"
+sha2 = "0.10"
+open = "5"
 wasmtime = "30"
 wasmtime-wasi = { version = "30", features = ["preview1"] }
 

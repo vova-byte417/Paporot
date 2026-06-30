@@ -1,0 +1,91 @@
+# Paporot CI/CD Integration Template
+#
+# 在每次 push 时自动运行 Paporot 评估管线。
+# 使用方法：
+#   1. 将本文件置于 .github/workflows/paporot.yml
+#   2. 配置 Secrets: PAPOROT_API_KEY (可选, 用于 LLM Rubric)
+#   3. 推送到仓库即可触发
+
+name: Paporot Agent Behavior Audit
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      prd_path:
+        description: 'Path to PRD file (optional)'
+        required: false
+        default: ''
+
+env:
+  RUST_BACKTRACE: 1
+
+jobs:
+  paporot-eval:
+    name: Paporot Behavior Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for git diff
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Paporot
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/paporot
+            target/
+          key: paporot-${{ github.sha }}
+
+      - name: Build Paporot
+        run: cargo build --release
+        working-directory: .
+
+      - name: Initialize Paporot
+        run: cargo run --release -- init
+        working-directory: .
+        env:
+          PAPOROT_SIGNING_SECRET: ${{ secrets.PAPOROT_SIGNING_SECRET }}
+
+      - name: Run Paporot Evaluation (auto)
+        run: |
+          if [ -n "${{ github.event.inputs.prd_path }}" ]; then
+            cargo run --release -- eval auto --prd "${{ github.event.inputs.prd_path }}"
+          else
+            cargo run --release -- eval auto --no-llm
+          fi
+        working-directory: .
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.PAPOROT_API_KEY }}
+
+      - name: Run Paporot Regression Check
+        if: always()
+        run: cargo run --release -- eval regression
+        working-directory: .
+
+      - name: Upload Paporot Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paporot-report
+          path: .Paporot/reports/
+
+      - name: Generate Summary
+        if: always()
+        run: |
+          echo "## Paporot Behavior Audit" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          cargo run --release -- status 2>/dev/null | while IFS=: read -r key val; do
+            echo "| $key | $val |" >> $GITHUB_STEP_SUMMARY
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Full report available in CI artifacts." >> $GITHUB_STEP_SUMMARY
+        working-directory: .

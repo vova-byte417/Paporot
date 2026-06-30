@@ -142,8 +142,8 @@ impl CochangeEvidence {
     /// Quick cochange from just session co-occurrence counts.
     pub fn from_counts(
         cooccur_count: u32,
-        cap_a_total: u32,
-        cap_b_total: u32,
+        _cap_a_total: u32,
+        _cap_b_total: u32,
         total_sessions: u32,
     ) -> f32 {
         if total_sessions == 0 {

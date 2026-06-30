@@ -1,0 +1,50 @@
+[skill]
+name = "report-generator"
+version = "0.4.0"
+requires_paporot = ">=0.4.0"
+description = "Aggregates all grader results and generates a comprehensive evaluation report in JSON/Markdown/HTML"
+
+[inputs]
+required = ["code_change_cache", "eval_context", "all_grader_results", "llm_rubric_result"]
+
+[outputs]
+schema = "report_output"
+
+[llm_calls]
+max_calls = 1
+preferred_model = "deepseek-v4-pro"
+
+[dependencies]
+
+[quality]
+checks = [
+    "report_must_include_all_grader_results",
+    "summary_section_must_not_exceed_500_chars",
+    "trend_section_required_when_trials_ge_2"
+]
+
+# ── Procedure ──
+# Step 1: Read all grader results from .Paporot/cache/
+# Step 2: Read llm_rubric_result from .Paporot/cache/skill_output/
+# Step 3: Compute overall outcome (Pass/Fail/Partial)
+# Step 4: Generate structured report with sections: Summary, Graders, Metrics, LLM Rubric, Recommendations
+# Step 5: Write report to .Paporot/reports/ (JSON + Markdown + HTML)
+
+# ── Output Schema ──
+# {
+#   "eval_id": "string",
+#   "task_id": "string",
+#   "outcome": "PASS|FAIL|PARTIAL",
+#   "summary": "string (max 500 chars)",
+#   "grader_details": [...],
+#   "llm_rubric": {...},
+#   "metrics": {
+#     "total_files": int,
+#     "total_additions": int,
+#     "total_deletions": int,
+#     "build_passed": bool,
+#     "tests_passed": bool,
+#     "lint_passed": bool
+#   },
+#   "recommendations": ["string"]
+# }

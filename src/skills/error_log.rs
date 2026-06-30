@@ -5,7 +5,7 @@
 //! - 生成人类可读的错误摘要（Markdown）
 //! - 降级：上游失败 → 下游跳过（已在 DAG 层实现）
 
-use crate::skills::types::{SkillError, SkillRunResult, SkillRunStatus};
+use crate::skills::types::{SkillRunResult, SkillRunStatus};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;

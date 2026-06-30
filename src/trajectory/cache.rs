@@ -3,7 +3,7 @@
 //! 与 trace_index.db 分离，独立管理 trajectory_cache.db。
 
 use rusqlite::Connection;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::fs;
 
 use super::error::TrajectoryError;

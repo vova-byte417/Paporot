@@ -4,7 +4,7 @@
 //! MVP 阶段：直接复用现有 LLM 调用逻辑，不做分片/缓存优化。
 
 use crate::llm::client::LlmClient;
-use crate::prompts;
+use super::prompts;
 use crate::types::*;
 use super::types::*;
 

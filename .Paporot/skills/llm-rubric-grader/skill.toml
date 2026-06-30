@@ -1,0 +1,45 @@
+[skill]
+name = "llm-rubric-grader"
+version = "0.4.0"
+requires_paporot = ">=0.4.0"
+description = "LLM-based rubric grading: evaluates Agent behavior quality against customizable criteria"
+
+[inputs]
+required = ["code_change_cache", "eval_context", "grader_results"]
+optional = ["rubric_config", "transcript_summary"]
+
+[outputs]
+schema = "llm_rubric_output"
+
+[llm_calls]
+max_calls = 1
+preferred_model = "deepseek-v4-pro"
+
+[dependencies]
+
+[quality]
+checks = [
+    "rubric_scores_must_be_0_to_10",
+    "justification_required_per_criterion",
+    "no_scores_without_evidence"
+]
+
+# ── Procedure ──
+# Step 1: Read code_change_cache from .Paporot/cache/code_change.json
+# Step 2: Read grader_results from .Paporot/cache/ (test_results, lint_results, build_results)
+# Step 3: Build LLM prompt with rubric criteria
+# Step 4: Call LLM to score each rubric dimension
+# Step 5: Write llm_rubric_result to .Paporot/cache/skill_output/
+
+# ── Output Schema ──
+# {
+#   "overall_score": 0-10,
+#   "dimensions": [
+#     {"name": "正确性", "score": 0-10, "justification": "..."},
+#     {"name": "可维护性", "score": 0-10, "justification": "..."},
+#     {"name": "安全性", "score": 0-10, "justification": "..."},
+#     {"name": "工具使用效率", "score": 0-10, "justification": "..."},
+#     {"name": "最小变更原则", "score": 0-10, "justification": "..."}
+#   ],
+#   "summary": "string (1-2 sentences)"
+# }

@@ -77,7 +77,7 @@ pub fn build_vector(
 
     // Build SparseVectors from histograms
     let tool_categories = ["locate", "modify", "verify", "commit", "other"];
-    let tool_indices: Vec<u32> = (0..tool_categories.len() as u32).collect();
+    let _tool_indices: Vec<u32> = (0..tool_categories.len() as u32).collect();
     let tool_values: Vec<f32> = tool_categories
         .iter()
         .map(|c| snapshot.tool_histogram.get(*c).copied().unwrap_or(0.0))
@@ -85,7 +85,7 @@ pub fn build_vector(
     let tool_distribution = SparseVector::from_dense(&tool_values, registry_version);
 
     let phase_labels = ["locate", "modify", "verify", "commit", "other"];
-    let phase_indices: Vec<u32> = (0..phase_labels.len() as u32).collect();
+    let _phase_indices: Vec<u32> = (0..phase_labels.len() as u32).collect();
     let phase_values: Vec<f32> = phase_labels
         .iter()
         .map(|p| snapshot.state_histogram.get(*p).copied().unwrap_or(0.0))

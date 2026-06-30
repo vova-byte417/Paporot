@@ -8,7 +8,6 @@ use Paporot::analysis::preprocessor::DiffPreprocessor;
 use Paporot::analysis::l1_ast::AstAnalyzer;
 use Paporot::analysis::l2_rules::RuleEngine;
 use Paporot::analysis::types::*;
-use Paporot::graph::{DependencyEdge, DependencyGraph, GraphStorage};
 use Paporot::types::*;
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -114,7 +113,6 @@ diff --git a/app/api.py b/app/api.py
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// 集成测试: L1+L2 安全规则联动
 // ═══════════════════════════════════════════════════════════════════════
 
 #[test]
@@ -210,7 +208,8 @@ fn test_no_rule_on_innocuous_change() {
 // 集成测试: 依赖图操作
 // ═══════════════════════════════════════════════════════════════════════
 
-#[test]
+// v0.4.0: graph module removed
+/*#[test]
 fn test_graph_persistence_roundtrip() {
     let dir = std::env::temp_dir().join("Paporot_int_test_graph");
     let _ = std::fs::remove_dir_all(&dir);
@@ -366,8 +365,9 @@ fn make_edge(from: &str, to: &str, relation: DependencyRelation) -> DependencyEd
     }
 }
 
+*/
+
 // ═══════════════════════════════════════════════════════════════════════
-// 集成测试: 类型序列化（P1/P2 扩展验证）
 // ═══════════════════════════════════════════════════════════════════════
 
 #[test]
@@ -618,6 +618,7 @@ fn test_multiple_hunks_single_file() {
 // 系统级测试: 完整 L1→L2→Agent 端到端流水线
 // ═══════════════════════════════════════════════════════════════════════
 
+/* v0.4.0: agent module removed
 #[test]
 fn test_system_agent_compute_diff_pipeline() {
     // 测试 Agent.compute_diff 的完整分类能力
@@ -686,6 +687,7 @@ fn test_system_agent_compute_diff_pipeline() {
     assert!(!v2_v3_diff.risks_and_notes.is_empty());
     assert!(!v2_v3_diff.impact_summary.is_empty());
 }
+*/
 
 /// 测试项: 系统级 L1 完整多文件分析
 /// 输入: 真实场景 3 文件 Rust diff (API 端点 + handler + DB)
@@ -1026,7 +1028,6 @@ mod trajectory_tests {
     use Paporot::trajectory::hash::{semantic_hash, semantic_hashes};
     use Paporot::trajectory::analysis::TrajectoryAnalysis;
     use Paporot::trajectory::error::TrajectoryError;
-    use Paporot::evaler::rules;
 
     fn make_tool(name: &str, args: serde_json::Value, id: &str) -> ToolCall {
         ToolCall {
@@ -1138,6 +1139,7 @@ mod trajectory_tests {
             "Should have phase changes");
     }
 
+    /* v0.4.0: evaler module removed
     #[test]
     fn test_segment_rules_with_analysis() {
         use Paporot::trajectory::types::*;
@@ -1201,7 +1203,9 @@ mod trajectory_tests {
         assert!(!hits.iter().any(|h| h.rule_id == "S002"),
             "S002 should not trigger for added phases");
     }
+*/
 
+    /* v0.4.0: evaler module removed
     #[test]
     fn test_segment_rules_critical_phase_deletion() {
         use Paporot::trajectory::types::*;
@@ -1239,6 +1243,7 @@ mod trajectory_tests {
         assert!(hits.iter().any(|h| h.rule_id == "S002"),
             "S002 should trigger when critical phase is deleted");
     }
+*/
 
     #[test]
     fn test_trajectory_mermaid_output() {

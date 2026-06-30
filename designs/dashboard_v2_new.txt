@@ -1,0 +1,136 @@
+fn generate_dashboard_v2(
+    eval: &::Paporot::eval::types::EvalResult,
+    narrative: Option<&NarrativeData>,
+    prev_count: usize,
+) -> String {
+    let cc = &eval.code_change;
+    let headline = narrative.map(|n| n.headline.as_str()).unwrap_or("代码变更分析");
+    let subtitle = narrative.map(|n| n.subtitle.as_str()).unwrap_or("Agent 对项目进行了代码修改");
+    let overall_risk = narrative.map(|n| n.overall_risk.as_str()).unwrap_or("medium");
+
+    // ── 构建增强数据：waterfall + panorama ──
+    use std::collections::BTreeMap;
+
+    // 按模块分组符号
+    let mut syms_by_mod: BTreeMap<String, Vec<serde_json::Value>> = BTreeMap::new();
+    let mut mod_file_set: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for s in &cc.symbols_added {
+        let m = module_short(&s.file_path);
+        syms_by_mod.entry(m.clone()).or_default().push(json!({
+            "name": s.name, "kind": s.kind.to_string(), "file": s.file_path,
+            "action": "added", "line": s.line_start,
+        }));
+        mod_file_set.entry(m).or_default().push(s.file_path.clone());
+    }
+    for s in &cc.symbols_removed {
+        let m = module_short(&s.file_path);
+        syms_by_mod.entry(m.clone()).or_default().push(json!({
+            "name": s.name, "kind": s.kind.to_string(), "file": s.file_path,
+            "action": "removed", "line": s.line_start,
+        }));
+        mod_file_set.entry(m).or_default().push(s.file_path.clone());
+    }
+
+    // 所有文件（去重）
+    let files_dedup: Vec<String> = {
+        let mut set: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        for f in &cc.files_changed { set.insert(f.clone()); }
+        set.into_iter().collect()
+    };
+
+    // 按目录组织文件树
+    #[derive(serde::Serialize)]
+    struct FileTreeNode {
+        name: String,
+        path: String,
+        children: Vec<FileTreeNode>,
+        is_file: bool,
+    }
+
+    fn build_file_tree(files: &[String]) -> Vec<FileTreeNode> {
+        let mut root: BTreeMap<String, Vec<String>> = BTreeMap::new();
+        for f in files {
+            let parts: Vec<&str> = f.split('/').collect();
+            if parts.len() >= 2 {
+                root.entry(parts[0].to_string()).or_default().push(f.clone());
+            } else {
+                root.entry(".".to_string()).or_default().push(f.clone());
+            }
+        }
+        root.into_iter().map(|(dir, fs)| {
+            FileTreeNode {
+                name: dir.clone(),
+                path: dir,
+                children: fs.into_iter().map(|fp| {
+                    let name = fp.rsplit('/').next().unwrap_or(&fp).to_string();
+                    FileTreeNode { name, path: fp, children: vec![], is_file: true }
+                }).collect(),
+                is_file: false,
+            }
+        }).collect()
+    }
+
+    let file_tree = build_file_tree(&files_dedup);
+
+    // 模块关系边（同一变更中的模块互相影响）
+    let mods: Vec<String> = syms_by_mod.keys().cloned().collect();
+    let mut module_edges: Vec<serde_json::Value> = Vec::new();
+    for i in 0..mods.len() {
+        for j in (i+1)..mods.len() {
+            // 计算耦合强度：两个模块共享的文件数
+            let shared = mod_file_set.get(&mods[i]).unwrap_or(&vec![])
+                .iter()
+                .filter(|f| mod_file_set.get(&mods[j]).unwrap_or(&vec![]).contains(f))
+                .count();
+            if shared > 0 || mods.len() <= 2 {
+                module_edges.push(json!({
+                    "source": mods[i], "target": mods[j],
+                    "strength": (shared as u32).max(1),
+                }));
+            }
+        }
+    }
+
+    let wf_data = json!({
+        "symbolsByModule": syms_by_mod,
+        "moduleEdges": module_edges,
+        "fileTree": file_tree,
+        "allModules": mods,
+    });
+
+    let pn_data = json!({
+        "nodes": syms_by_mod.iter().map(|(m, syms)| json!({
+            "id": m,
+            "label": m.rsplit('/').next().unwrap_or(m),
+            "changeCount": syms.len(),
+            "isChanged": true,
+            "addedCount": syms.iter().filter(|s| s["action"] == "added").count(),
+            "removedCount": syms.iter().filter(|s| s["action"] == "removed").count(),
+        })).collect::<Vec<_>>(),
+        "links": module_edges,
+    });
+
+    let eval_date = &eval.created_at[..eval.created_at.len().min(10)];
+
+    let data = json!({
+        "headline": headline,
+        "subtitle": subtitle,
+        "overallRisk": overall_risk,
+        "symbols": {
+            "added": cc.symbols_added.iter().map(|s| json!({"name":s.name,"kind":s.kind.to_string(),"file":s.file_path})).collect::<Vec<_>>(),
+            "removed": cc.symbols_removed.iter().map(|s| json!({"name":s.name,"kind":s.kind.to_string(),"file":s.file_path})).collect::<Vec<_>>(),
+        },
+        "modules": cc.modules,
+        "files": cc.files_changed,
+        "interpretations": narrative.map(|n| &n.module_interpretations),
+        "filesChanged": cc.files_changed.len(),
+        "additions": cc.additions,
+        "deletions": cc.deletions,
+        "prevTrials": prev_count,
+        "graders": eval.grader_results.iter().map(|g| json!({"name":g.name,"passed":g.passed})).collect::<Vec<_>>(),
+        "eval": {"eval_id":eval.eval_id,"task":{"description":eval.task.description,"id":eval.task.id,"category":format!("{}",eval.task.category)},"outcome":eval.outcome.label(),"created_at":eval.created_at,"date":eval_date},
+        "waterfall": wf_data,
+        "panorama": pn_data,
+    });
+
+    let data_json = serde_json::to_string(&data).unwrap_or_default();

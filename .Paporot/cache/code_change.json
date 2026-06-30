@@ -1,0 +1,570 @@
+{
+  "files_changed": [
+    ".Paporot/contracts/excalidraw.contract.yaml",
+    ".Paporot/contracts/html.contract.yaml",
+    ".Paporot/contracts/json.contract.yaml",
+    ".Paporot/regression/cases/replay-1782094381947.json",
+    ".Paporot/regression/cases/replay-1782094381984.json",
+    ".Paporot/regression/cases/replay-1782094382010.json",
+    ".Paporot/regression/cases/replay-1782094382059.json",
+    ".Paporot/regression/cases/replay-1782094382103.json",
+    ".Paporot/regression/cases/replay-1782094382165.json",
+    ".Paporot/skills/verification-runner/skill.toml",
+    ".gitignore",
+    "Cargo.lock",
+    "Cargo.toml",
+    "crates/paporot-core/src/host.rs",
+    "crates/paporot-core/src/pipeline.rs",
+    "crates/skill-sdk/src/host.rs",
+    "crates/skill-sdk/src/lib.rs",
+    "crates/skills/Cargo.toml",
+    "crates/skills/src/bin/verification_runner.rs",
+    "designs/verification-layer-design.md",
+    "src/lib.rs",
+    "src/main.rs",
+    "src/verification/contract.rs",
+    "src/verification/evidence.rs",
+    "src/verification/mod.rs",
+    "src/verification/types.rs"
+  ],
+  "additions": 3,
+  "deletions": 2300,
+  "symbols_removed": [
+    {
+      "name": "host_verify_contract",
+      "kind": "function",
+      "file_path": "crates/paporot-core/src/host.rs",
+      "line_start": 25,
+      "line_end": 25
+    },
+    {
+      "name": "host_capture_evidence",
+      "kind": "function",
+      "file_path": "crates/paporot-core/src/host.rs",
+      "line_start": 32,
+      "line_end": 32
+    },
+    {
+      "name": "host_save_replay_case",
+      "kind": "function",
+      "file_path": "crates/paporot-core/src/host.rs",
+      "line_start": 41,
+      "line_end": 41
+    },
+    {
+      "name": "host_load_replay_cases",
+      "kind": "function",
+      "file_path": "crates/paporot-core/src/host.rs",
+      "line_start": 45,
+      "line_end": 45
+    },
+    {
+      "name": "verify_contract",
+      "kind": "function",
+      "file_path": "crates/paporot-core/src/host.rs",
+      "line_start": 87,
+      "line_end": 87
+    },
+    {
+      "name": "capture_evidence",
+      "kind": "function",
+      "file_path": "crates/paporot-core/src/host.rs",
+      "line_start": 105,
+      "line_end": 105
+    },
+    {
+      "name": "save_replay_case",
+      "kind": "function",
+      "file_path": "crates/paporot-core/src/host.rs",
+      "line_start": 121,
+      "line_end": 121
+    },
+    {
+      "name": "load_replay_cases",
+      "kind": "function",
+      "file_path": "crates/paporot-core/src/host.rs",
+      "line_start": 127,
+      "line_end": 127
+    },
+    {
+      "name": "run_procedural_skill",
+      "kind": "function",
+      "file_path": "crates/paporot-core/src/pipeline.rs",
+      "line_start": 474,
+      "line_end": 474
+    },
+    {
+      "name": "run_verification_runner",
+      "kind": "function",
+      "file_path": "crates/paporot-core/src/pipeline.rs",
+      "line_start": 482,
+      "line_end": 482
+    },
+    {
+      "name": "host_verify_contract",
+      "kind": "function",
+      "file_path": "crates/skill-sdk/src/host.rs",
+      "line_start": 119,
+      "line_end": 119
+    },
+    {
+      "name": "host_capture_evidence",
+      "kind": "function",
+      "file_path": "crates/skill-sdk/src/host.rs",
+      "line_start": 126,
+      "line_end": 126
+    },
+    {
+      "name": "host_save_replay_case",
+      "kind": "function",
+      "file_path": "crates/skill-sdk/src/host.rs",
+      "line_start": 135,
+      "line_end": 135
+    },
+    {
+      "name": "host_load_replay_cases",
+      "kind": "function",
+      "file_path": "crates/skill-sdk/src/host.rs",
+      "line_start": 139,
+      "line_end": 139
+    },
+    {
+      "name": "verify_contract",
+      "kind": "function",
+      "file_path": "crates/skill-sdk/src/host.rs",
+      "line_start": 143,
+      "line_end": 143
+    },
+    {
+      "name": "capture_evidence",
+      "kind": "function",
+      "file_path": "crates/skill-sdk/src/host.rs",
+      "line_start": 161,
+      "line_end": 161
+    },
+    {
+      "name": "save_replay_case",
+      "kind": "function",
+      "file_path": "crates/skill-sdk/src/host.rs",
+      "line_start": 177,
+      "line_end": 177
+    },
+    {
+      "name": "load_replay_cases",
+      "kind": "function",
+      "file_path": "crates/skill-sdk/src/host.rs",
+      "line_start": 183,
+      "line_end": 183
+    },
+    {
+      "name": "skill_to_artifact_type",
+      "kind": "function",
+      "file_path": "crates/skills/Cargo.toml",
+      "line_start": 12,
+      "line_end": 12
+    },
+    {
+      "name": "main",
+      "kind": "function",
+      "file_path": "crates/skills/Cargo.toml",
+      "line_start": 152,
+      "line_end": 152
+    },
+    {
+      "name": "verify_artifact",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 9,
+      "line_end": 9
+    },
+    {
+      "name": "is_bool_true",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 212,
+      "line_end": 212
+    },
+    {
+      "name": "check_valid_json",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 216,
+      "line_end": 216
+    },
+    {
+      "name": "check_excalidraw_schema",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 223,
+      "line_end": 223
+    },
+    {
+      "name": "find_empty_arrays",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 249,
+      "line_end": 249
+    },
+    {
+      "name": "find_empty_objects",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 276,
+      "line_end": 276
+    },
+    {
+      "name": "json_contract_yaml",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 300,
+      "line_end": 300
+    },
+    {
+      "name": "excalidraw_contract_yaml",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 318,
+      "line_end": 318
+    },
+    {
+      "name": "test_valid_json_passes",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 350,
+      "line_end": 350
+    },
+    {
+      "name": "test_valid_json_fails_on_invalid",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 364,
+      "line_end": 364
+    },
+    {
+      "name": "test_valid_json_passes_with_null",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 380,
+      "line_end": 380
+    },
+    {
+      "name": "test_excalidraw_schema_passes",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 399,
+      "line_end": 399
+    },
+    {
+      "name": "test_excalidraw_schema_fails_missing_type",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 414,
+      "line_end": 414
+    },
+    {
+      "name": "test_excalidraw_schema_fails_missing_version",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 430,
+      "line_end": 430
+    },
+    {
+      "name": "test_excalidraw_schema_fails_missing_elements",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 446,
+      "line_end": 446
+    },
+    {
+      "name": "test_excalidraw_schema_fails_elements_not_array",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 462,
+      "line_end": 462
+    },
+    {
+      "name": "test_excalidraw_schema_elements_is_array_passes",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 477,
+      "line_end": 477
+    },
+    {
+      "name": "test_required_fields_all_present",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 496,
+      "line_end": 496
+    },
+    {
+      "name": "test_required_fields_missing_one",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 508,
+      "line_end": 508
+    },
+    {
+      "name": "test_required_fields_on_array_input_all_fail",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 522,
+      "line_end": 522
+    },
+    {
+      "name": "test_no_empty_arrays_passes",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 542,
+      "line_end": 542
+    },
+    {
+      "name": "test_no_empty_arrays_detects_empty",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 554,
+      "line_end": 554
+    },
+    {
+      "name": "test_no_empty_arrays_nested",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 568,
+      "line_end": 568
+    },
+    {
+      "name": "test_min_elements_passes",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 588,
+      "line_end": 588
+    },
+    {
+      "name": "test_min_elements_fails_with_zero",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 603,
+      "line_end": 603
+    },
+    {
+      "name": "test_max_elements_passes",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 616,
+      "line_end": 616
+    },
+    {
+      "name": "test_max_elements_fails_when_exceeded",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 634,
+      "line_end": 634
+    },
+    {
+      "name": "test_no_deleted_only_passes_when_mixed",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 656,
+      "line_end": 656
+    },
+    {
+      "name": "test_no_deleted_only_fails_all_deleted",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 671,
+      "line_end": 671
+    },
+    {
+      "name": "test_no_deleted_only_skips_on_non_excalidraw",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 687,
+      "line_end": 687
+    },
+    {
+      "name": "test_allowed_element_types_passes",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 702,
+      "line_end": 702
+    },
+    {
+      "name": "test_allowed_element_types_fails_invalid_type",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 718,
+      "line_end": 718
+    },
+    {
+      "name": "test_allowed_element_types_all_invalid",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 735,
+      "line_end": 735
+    },
+    {
+      "name": "test_overall_pass_when_all_rules_pass",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 754,
+      "line_end": 754
+    },
+    {
+      "name": "test_overall_fail_when_any_rule_fails",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 768,
+      "line_end": 768
+    },
+    {
+      "name": "test_partial_fail_collects_all_failures",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 779,
+      "line_end": 779
+    },
+    {
+      "name": "test_bad_contract_yaml_returns_error",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 796,
+      "line_end": 796
+    },
+    {
+      "name": "test_empty_contract_structure_produces_no_structure_rules",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 804,
+      "line_end": 804
+    },
+    {
+      "name": "test_syntax_rule_not_enabled_does_not_check",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 823,
+      "line_end": 823
+    },
+    {
+      "name": "test_conforms_to_schema_rule",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 844,
+      "line_end": 844
+    },
+    {
+      "name": "test_artifact_id_and_type_are_preserved",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 864,
+      "line_end": 864
+    },
+    {
+      "name": "test_excalidraw_valid_with_no_elements_still_fails_min_elements",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 875,
+      "line_end": 875
+    },
+    {
+      "name": "EvidenceBuffer",
+      "kind": "struct",
+      "file_path": "src/main.rs",
+      "line_start": 11,
+      "line_end": 11
+    },
+    {
+      "name": "EvidenceBuffer",
+      "kind": "impl",
+      "file_path": "src/main.rs",
+      "line_start": 15,
+      "line_end": 15
+    },
+    {
+      "name": "new",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 16,
+      "line_end": 16
+    },
+    {
+      "name": "capture",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 20,
+      "line_end": 20
+    },
+    {
+      "name": "get",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 30,
+      "line_end": 30
+    },
+    {
+      "name": "save_replay_case",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 36,
+      "line_end": 36
+    },
+    {
+      "name": "load_replay_cases",
+      "kind": "function",
+      "file_path": "src/main.rs",
+      "line_start": 52,
+      "line_end": 52
+    },
+    {
+      "name": "VerificationResult",
+      "kind": "struct",
+      "file_path": "src/main.rs",
+      "line_start": 5,
+      "line_end": 5
+    },
+    {
+      "name": "RuleResult",
+      "kind": "struct",
+      "file_path": "src/main.rs",
+      "line_start": 14,
+      "line_end": 14
+    },
+    {
+      "name": "ContractConfig",
+      "kind": "struct",
+      "file_path": "src/main.rs",
+      "line_start": 23,
+      "line_end": 23
+    },
+    {
+      "name": "ContractRules",
+      "kind": "struct",
+      "file_path": "src/main.rs",
+      "line_start": 33,
+      "line_end": 33
+    },
+    {
+      "name": "EvidenceRecord",
+      "kind": "struct",
+      "file_path": "src/main.rs",
+      "line_start": 42,
+      "line_end": 42
+    },
+    {
+      "name": "ReplayCase",
+      "kind": "struct",
+      "file_path": "src/main.rs",
+      "line_start": 51,
+      "line_end": 51
+    }
+  ],
+  "modules": [
+    ".",
+    "crates/paporot-core",
+    "crates/skill-sdk",
+    "crates/skills",
+    "src/lib.rs",
+    "src/main.rs",
+    "src/verification"
+  ],
+  "confidence": 1.0,
+  "diff_length": 100303
+}

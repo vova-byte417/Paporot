@@ -1,0 +1,2585 @@
+diff --git a/.Paporot/contracts/excalidraw.contract.yaml b/.Paporot/contracts/excalidraw.contract.yaml
+deleted file mode 100644
+index dc032b4..0000000
+--- a/.Paporot/contracts/excalidraw.contract.yaml
++++ /dev/null
+@@ -1,24 +0,0 @@
+-# Excalidraw Artifact Contract
+-# MVP: structural correctness checks only (no semantic validation)
+-artifact_type: excalidraw
+-version: "1.0"
+-severity: error
+-
+-rules:
+-  syntax:
+-    valid_json: true
+-    valid_excalidraw_schema: true
+-
+-  structure:
+-    min_elements: 1
+-    no_deleted_only: true
+-    allowed_element_types:
+-      - rectangle
+-      - ellipse
+-      - diamond
+-      - text
+-      - arrow
+-      - line
+-      - freedraw
+-      - image
+-    max_elements: 500
+diff --git a/.Paporot/contracts/html.contract.yaml b/.Paporot/contracts/html.contract.yaml
+deleted file mode 100644
+index 6f78350..0000000
+--- a/.Paporot/contracts/html.contract.yaml
++++ /dev/null
+@@ -1,11 +0,0 @@
+-# HTML Artifact Contract
+-# MVP: basic syntax check only
+-artifact_type: html
+-version: "1.0"
+-severity: warn
+-
+-rules:
+-  syntax:
+-    valid_json: false
+-
+-  structure: {}
+diff --git a/.Paporot/contracts/json.contract.yaml b/.Paporot/contracts/json.contract.yaml
+deleted file mode 100644
+index 345c582..0000000
+--- a/.Paporot/contracts/json.contract.yaml
++++ /dev/null
+@@ -1,15 +0,0 @@
+-# JSON Artifact Contract
+-# MVP: structural correctness checks only
+-artifact_type: json
+-version: "1.0"
+-severity: error
+-
+-rules:
+-  syntax:
+-    valid_json: true
+-
+-  structure:
+-    required_fields:
+-      - project_name
+-      - summary
+-    no_empty_arrays: true
+diff --git a/.Paporot/regression/cases/replay-1782094381947.json b/.Paporot/regression/cases/replay-1782094381947.json
+deleted file mode 100644
+index 7b0ce6a..0000000
+--- a/.Paporot/regression/cases/replay-1782094381947.json
++++ /dev/null
+@@ -1,47 +0,0 @@
+-{
+-  "case_id": "replay-1782094381947",
+-  "created_at": "2026-06-22T02:13:01.947926682+00:00",
+-  "artifact_type": "json",
+-  "artifact_id": "repository-understanding",
+-  "upstream_input": {
+-    "architecture-doc-generator": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "behavior-boundary-discovery": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "dependency-analysis": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "module-discovery": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "runtime-flow-analysis": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}"
+-  },
+-  "failed_artifact": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-  "contract_result": {
+-    "artifact_id": "json",
+-    "artifact_type": "json",
+-    "status": "FAIL",
+-    "rule_results": [
+-      {
+-        "rule": "valid_json",
+-        "pass": true
+-      },
+-      {
+-        "rule": "required_field:project_name",
+-        "pass": false,
+-        "detail": "missing required field 'project_name'"
+-      },
+-      {
+-        "rule": "required_field:summary",
+-        "pass": false,
+-        "detail": "missing required field 'summary'"
+-      },
+-      {
+-        "rule": "no_empty_arrays",
+-        "pass": true
+-      }
+-    ],
+-    "suggestions": [
+-      "输出缺少必填字段 'project_name'，请检查上游 Skill 是否正确生成了该字段",
+-      "输出缺少必填字段 'summary'，请检查上游 Skill 是否正确生成了该字段"
+-    ]
+-  },
+-  "suggestions": [
+-    "输出缺少必填字段 'project_name'，请检查上游 Skill 是否正确生成了该字段",
+-    "输出缺少必填字段 'summary'，请检查上游 Skill 是否正确生成了该字段"
+-  ]
+-}
+\ No newline at end of file
+diff --git a/.Paporot/regression/cases/replay-1782094381984.json b/.Paporot/regression/cases/replay-1782094381984.json
+deleted file mode 100644
+index 8c59a19..0000000
+--- a/.Paporot/regression/cases/replay-1782094381984.json
++++ /dev/null
+@@ -1,47 +0,0 @@
+-{
+-  "case_id": "replay-1782094381984",
+-  "created_at": "2026-06-22T02:13:01.984066126+00:00",
+-  "artifact_type": "json",
+-  "artifact_id": "runtime-flow-analysis",
+-  "upstream_input": {
+-    "architecture-doc-generator": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "behavior-boundary-discovery": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "dependency-analysis": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "module-discovery": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "repository-understanding": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}"
+-  },
+-  "failed_artifact": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-  "contract_result": {
+-    "artifact_id": "json",
+-    "artifact_type": "json",
+-    "status": "FAIL",
+-    "rule_results": [
+-      {
+-        "rule": "valid_json",
+-        "pass": true
+-      },
+-      {
+-        "rule": "required_field:project_name",
+-        "pass": false,
+-        "detail": "missing required field 'project_name'"
+-      },
+-      {
+-        "rule": "required_field:summary",
+-        "pass": false,
+-        "detail": "missing required field 'summary'"
+-      },
+-      {
+-        "rule": "no_empty_arrays",
+-        "pass": true
+-      }
+-    ],
+-    "suggestions": [
+-      "输出缺少必填字段 'project_name'，请检查上游 Skill 是否正确生成了该字段",
+-      "输出缺少必填字段 'summary'，请检查上游 Skill 是否正确生成了该字段"
+-    ]
+-  },
+-  "suggestions": [
+-    "输出缺少必填字段 'project_name'，请检查上游 Skill 是否正确生成了该字段",
+-    "输出缺少必填字段 'summary'，请检查上游 Skill 是否正确生成了该字段"
+-  ]
+-}
+\ No newline at end of file
+diff --git a/.Paporot/regression/cases/replay-1782094382010.json b/.Paporot/regression/cases/replay-1782094382010.json
+deleted file mode 100644
+index 8a89590..0000000
+--- a/.Paporot/regression/cases/replay-1782094382010.json
++++ /dev/null
+@@ -1,47 +0,0 @@
+-{
+-  "case_id": "replay-1782094382010",
+-  "created_at": "2026-06-22T02:13:02.010568977+00:00",
+-  "artifact_type": "json",
+-  "artifact_id": "architecture-doc-generator",
+-  "upstream_input": {
+-    "behavior-boundary-discovery": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "dependency-analysis": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "module-discovery": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "repository-understanding": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "runtime-flow-analysis": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}"
+-  },
+-  "failed_artifact": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-  "contract_result": {
+-    "artifact_id": "json",
+-    "artifact_type": "json",
+-    "status": "FAIL",
+-    "rule_results": [
+-      {
+-        "rule": "valid_json",
+-        "pass": true
+-      },
+-      {
+-        "rule": "required_field:project_name",
+-        "pass": false,
+-        "detail": "missing required field 'project_name'"
+-      },
+-      {
+-        "rule": "required_field:summary",
+-        "pass": false,
+-        "detail": "missing required field 'summary'"
+-      },
+-      {
+-        "rule": "no_empty_arrays",
+-        "pass": true
+-      }
+-    ],
+-    "suggestions": [
+-      "输出缺少必填字段 'project_name'，请检查上游 Skill 是否正确生成了该字段",
+-      "输出缺少必填字段 'summary'，请检查上游 Skill 是否正确生成了该字段"
+-    ]
+-  },
+-  "suggestions": [
+-    "输出缺少必填字段 'project_name'，请检查上游 Skill 是否正确生成了该字段",
+-    "输出缺少必填字段 'summary'，请检查上游 Skill 是否正确生成了该字段"
+-  ]
+-}
+\ No newline at end of file
+diff --git a/.Paporot/regression/cases/replay-1782094382059.json b/.Paporot/regression/cases/replay-1782094382059.json
+deleted file mode 100644
+index 39f364d..0000000
+--- a/.Paporot/regression/cases/replay-1782094382059.json
++++ /dev/null
+@@ -1,47 +0,0 @@
+-{
+-  "case_id": "replay-1782094382059",
+-  "created_at": "2026-06-22T02:13:02.059412522+00:00",
+-  "artifact_type": "json",
+-  "artifact_id": "dependency-analysis",
+-  "upstream_input": {
+-    "architecture-doc-generator": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "behavior-boundary-discovery": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "module-discovery": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "repository-understanding": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "runtime-flow-analysis": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}"
+-  },
+-  "failed_artifact": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-  "contract_result": {
+-    "artifact_id": "json",
+-    "artifact_type": "json",
+-    "status": "FAIL",
+-    "rule_results": [
+-      {
+-        "rule": "valid_json",
+-        "pass": true
+-      },
+-      {
+-        "rule": "required_field:project_name",
+-        "pass": false,
+-        "detail": "missing required field 'project_name'"
+-      },
+-      {
+-        "rule": "required_field:summary",
+-        "pass": false,
+-        "detail": "missing required field 'summary'"
+-      },
+-      {
+-        "rule": "no_empty_arrays",
+-        "pass": true
+-      }
+-    ],
+-    "suggestions": [
+-      "输出缺少必填字段 'project_name'，请检查上游 Skill 是否正确生成了该字段",
+-      "输出缺少必填字段 'summary'，请检查上游 Skill 是否正确生成了该字段"
+-    ]
+-  },
+-  "suggestions": [
+-    "输出缺少必填字段 'project_name'，请检查上游 Skill 是否正确生成了该字段",
+-    "输出缺少必填字段 'summary'，请检查上游 Skill 是否正确生成了该字段"
+-  ]
+-}
+\ No newline at end of file
+diff --git a/.Paporot/regression/cases/replay-1782094382103.json b/.Paporot/regression/cases/replay-1782094382103.json
+deleted file mode 100644
+index bd7a1d9..0000000
+--- a/.Paporot/regression/cases/replay-1782094382103.json
++++ /dev/null
+@@ -1,47 +0,0 @@
+-{
+-  "case_id": "replay-1782094382103",
+-  "created_at": "2026-06-22T02:13:02.103882008+00:00",
+-  "artifact_type": "json",
+-  "artifact_id": "behavior-boundary-discovery",
+-  "upstream_input": {
+-    "architecture-doc-generator": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "dependency-analysis": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "module-discovery": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "repository-understanding": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "runtime-flow-analysis": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}"
+-  },
+-  "failed_artifact": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-  "contract_result": {
+-    "artifact_id": "json",
+-    "artifact_type": "json",
+-    "status": "FAIL",
+-    "rule_results": [
+-      {
+-        "rule": "valid_json",
+-        "pass": true
+-      },
+-      {
+-        "rule": "required_field:project_name",
+-        "pass": false,
+-        "detail": "missing required field 'project_name'"
+-      },
+-      {
+-        "rule": "required_field:summary",
+-        "pass": false,
+-        "detail": "missing required field 'summary'"
+-      },
+-      {
+-        "rule": "no_empty_arrays",
+-        "pass": true
+-      }
+-    ],
+-    "suggestions": [
+-      "输出缺少必填字段 'project_name'，请检查上游 Skill 是否正确生成了该字段",
+-      "输出缺少必填字段 'summary'，请检查上游 Skill 是否正确生成了该字段"
+-    ]
+-  },
+-  "suggestions": [
+-    "输出缺少必填字段 'project_name'，请检查上游 Skill 是否正确生成了该字段",
+-    "输出缺少必填字段 'summary'，请检查上游 Skill 是否正确生成了该字段"
+-  ]
+-}
+\ No newline at end of file
+diff --git a/.Paporot/regression/cases/replay-1782094382165.json b/.Paporot/regression/cases/replay-1782094382165.json
+deleted file mode 100644
+index dc99683..0000000
+--- a/.Paporot/regression/cases/replay-1782094382165.json
++++ /dev/null
+@@ -1,47 +0,0 @@
+-{
+-  "case_id": "replay-1782094382165",
+-  "created_at": "2026-06-22T02:13:02.165659378+00:00",
+-  "artifact_type": "json",
+-  "artifact_id": "module-discovery",
+-  "upstream_input": {
+-    "architecture-doc-generator": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "behavior-boundary-discovery": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "dependency-analysis": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "repository-understanding": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-    "runtime-flow-analysis": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}"
+-  },
+-  "failed_artifact": "{\"status\":\"ok\",\"note\":\"LLM unavailable\"}",
+-  "contract_result": {
+-    "artifact_id": "json",
+-    "artifact_type": "json",
+-    "status": "FAIL",
+-    "rule_results": [
+-      {
+-        "rule": "valid_json",
+-        "pass": true
+-      },
+-      {
+-        "rule": "required_field:project_name",
+-        "pass": false,
+-        "detail": "missing required field 'project_name'"
+-      },
+-      {
+-        "rule": "required_field:summary",
+-        "pass": false,
+-        "detail": "missing required field 'summary'"
+-      },
+-      {
+-        "rule": "no_empty_arrays",
+-        "pass": true
+-      }
+-    ],
+-    "suggestions": [
+-      "输出缺少必填字段 'project_name'，请检查上游 Skill 是否正确生成了该字段",
+-      "输出缺少必填字段 'summary'，请检查上游 Skill 是否正确生成了该字段"
+-    ]
+-  },
+-  "suggestions": [
+-    "输出缺少必填字段 'project_name'，请检查上游 Skill 是否正确生成了该字段",
+-    "输出缺少必填字段 'summary'，请检查上游 Skill 是否正确生成了该字段"
+-  ]
+-}
+\ No newline at end of file
+diff --git a/.Paporot/skills/architecture-doc-generator/skill.wasm b/.Paporot/skills/architecture-doc-generator/skill.wasm
+index 28b9958..b80f1bb 100644
+Binary files a/.Paporot/skills/architecture-doc-generator/skill.wasm and b/.Paporot/skills/architecture-doc-generator/skill.wasm differ
+diff --git a/.Paporot/skills/behavior-boundary-discovery/skill.wasm b/.Paporot/skills/behavior-boundary-discovery/skill.wasm
+index dd4ffd6..b6ad381 100644
+Binary files a/.Paporot/skills/behavior-boundary-discovery/skill.wasm and b/.Paporot/skills/behavior-boundary-discovery/skill.wasm differ
+diff --git a/.Paporot/skills/dependency-analysis/skill.wasm b/.Paporot/skills/dependency-analysis/skill.wasm
+index 3672e32..0cfacc3 100644
+Binary files a/.Paporot/skills/dependency-analysis/skill.wasm and b/.Paporot/skills/dependency-analysis/skill.wasm differ
+diff --git a/.Paporot/skills/module-discovery/skill.wasm b/.Paporot/skills/module-discovery/skill.wasm
+index c7f8fa1..1ed737b 100644
+Binary files a/.Paporot/skills/module-discovery/skill.wasm and b/.Paporot/skills/module-discovery/skill.wasm differ
+diff --git a/.Paporot/skills/repository-understanding/skill.wasm b/.Paporot/skills/repository-understanding/skill.wasm
+index a9f75d4..da069c1 100644
+Binary files a/.Paporot/skills/repository-understanding/skill.wasm and b/.Paporot/skills/repository-understanding/skill.wasm differ
+diff --git a/.Paporot/skills/runtime-flow-analysis/skill.wasm b/.Paporot/skills/runtime-flow-analysis/skill.wasm
+index deec736..b1cc4b0 100644
+Binary files a/.Paporot/skills/runtime-flow-analysis/skill.wasm and b/.Paporot/skills/runtime-flow-analysis/skill.wasm differ
+diff --git a/.Paporot/skills/verification-runner/skill.toml b/.Paporot/skills/verification-runner/skill.toml
+deleted file mode 100644
+index 149192f..0000000
+--- a/.Paporot/skills/verification-runner/skill.toml
++++ /dev/null
+@@ -1,35 +0,0 @@
+-[skill]
+-name = "verification-runner"
+-version = "0.1.0"
+-requires_paporot = "0.3.0"
+-description = "对所有上游 Artifact 执行 Contract 验证、收集 Evidence、在 FAIL 时保存 Replay Case"
+-timeout_secs = 30
+-
+-[inputs]
+-required = []
+-optional = []
+-
+-[outputs]
+-schema = """{
+-  "type": "object",
+-  "properties": {
+-    "overall_status": {"type": "string", "enum": ["PASS", "FAIL"]},
+-    "results": {"type": "array"},
+-    "replay_cases_saved": {"type": "integer"}
+-  }
+-}"""
+-format = "json"
+-
+-[dependencies]
+-uses_outputs_from = [
+-  "architecture-doc-generator",
+-  "dependency-analysis",
+-  "runtime-flow-analysis",
+-  "module-discovery",
+-  "behavior-boundary-discovery",
+-  "repository-understanding"
+-]
+-
+-[llm_calls]
+-max_calls = 0
+-preferred_model = ""
+diff --git a/.Paporot/skills/verification-runner/skill.wasm b/.Paporot/skills/verification-runner/skill.wasm
+deleted file mode 100644
+index 5dc026c..0000000
+Binary files a/.Paporot/skills/verification-runner/skill.wasm and /dev/null differ
+diff --git a/.gitignore b/.gitignore
+index 894697a..247e937 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -14,8 +14,6 @@ crates/*/target/
+ 
+ # External
+ /ppt
+-/docs
+-/node_modules
+ 
+ # IDE
+ .vscode/
+diff --git a/Cargo.lock b/Cargo.lock
+index a7dc289..6e4959c 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -18,7 +18,6 @@ dependencies = [
+  "semver",
+  "serde",
+  "serde_json",
+- "serde_yaml",
+  "tempfile",
+  "thiserror 1.0.69",
+  "tokio",
+diff --git a/Cargo.toml b/Cargo.toml
+index 25e3ff1..f40f169 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -11,7 +11,6 @@ description = "AI 生成软件的行为版本控制与审计系统"
+ clap = { version = "4", features = ["derive"] }
+ serde = { version = "1", features = ["derive"] }
+ serde_json = "1"
+-serde_yaml = "0.9"
+ chrono = { version = "0.4", features = ["serde"] }
+ reqwest = { version = "0.12", features = ["json", "blocking"] }
+ tokio = { version = "1", features = ["full"] }
+diff --git a/crates/paporot-core/src/host.rs b/crates/paporot-core/src/host.rs
+index 582dc51..b7662d7 100644
+--- a/crates/paporot-core/src/host.rs
++++ b/crates/paporot-core/src/host.rs
+@@ -18,30 +18,6 @@ extern "C" {
+         prompt_ptr: *const u8, prompt_len: i32,
+         schema_ptr: *const u8, schema_len: i32,
+     ) -> i64;
+-
+-    /// Contract 验证
+-    /// type_ptr, type_len, content_ptr, content_len -> (result_ptr << 32) | result_len
+-    pub fn host_verify_contract(
+-        type_ptr: *const u8, type_len: i32,
+-        content_ptr: *const u8, content_len: i32,
+-    ) -> i64;
+-
+-    /// 收集 Evidence
+-    /// id_ptr, id_len, input_ptr, input_len, output_ptr, output_len, intermediate_ptr, intermediate_len -> errno
+-    pub fn host_capture_evidence(
+-        id_ptr: *const u8, id_len: i32,
+-        input_ptr: *const u8, input_len: i32,
+-        output_ptr: *const u8, output_len: i32,
+-        intermediate_ptr: *const u8, intermediate_len: i32,
+-    ) -> i32;
+-
+-    /// 保存 Replay Case
+-    /// case_ptr, case_len -> errno
+-    pub fn host_save_replay_case(case_ptr: *const u8, case_len: i32) -> i32;
+-
+-    /// 加载所有 Replay Case
+-    /// -> (cases_ptr << 32) | cases_len
+-    pub fn host_load_replay_cases() -> i64;
+ }
+ 
+ // ─── Wrappers ─────────────────────────────────────────────────────
+@@ -105,54 +81,3 @@ pub fn llm_call(prompt: &str, schema: &str) -> Option<String> {
+     let data = unsafe { std::slice::from_raw_parts(ptr, len) };
+     String::from_utf8(data.to_vec()).ok()
+ }
+-
+-/// 调用 Contract Engine 验证 artifact
+-pub fn verify_contract(artifact_type: &str, artifact_content: &str) -> Option<String> {
+-    let type_bytes = artifact_type.as_bytes();
+-    let content_bytes = artifact_content.as_bytes();
+-    let packed = unsafe {
+-        host_verify_contract(
+-            type_bytes.as_ptr(), type_bytes.len() as i32,
+-            content_bytes.as_ptr(), content_bytes.len() as i32,
+-        )
+-    };
+-    let (ptr, len) = unpack(packed);
+-    if ptr.is_null() || len == 0 {
+-        return None;
+-    }
+-    let data = unsafe { std::slice::from_raw_parts(ptr, len) };
+-    String::from_utf8(data.to_vec()).ok()
+-}
+-
+-/// 收集 evidence（内存中，沙盒生命周期内）
+-pub fn capture_evidence(artifact_id: &str, input: &str, output: &str, intermediate: &str) -> i32 {
+-    let id = artifact_id.as_bytes();
+-    let inp = input.as_bytes();
+-    let out = output.as_bytes();
+-    let int = intermediate.as_bytes();
+-    unsafe {
+-        host_capture_evidence(
+-            id.as_ptr(), id.len() as i32,
+-            inp.as_ptr(), inp.len() as i32,
+-            out.as_ptr(), out.len() as i32,
+-            int.as_ptr(), int.len() as i32,
+-        )
+-    }
+-}
+-
+-/// 保存 replay case（FAIL 时持久化）
+-pub fn save_replay_case(case_json: &str) -> i32 {
+-    let bytes = case_json.as_bytes();
+-    unsafe { host_save_replay_case(bytes.as_ptr(), bytes.len() as i32) }
+-}
+-
+-/// 加载所有 replay case
+-pub fn load_replay_cases() -> Option<String> {
+-    let packed = unsafe { host_load_replay_cases() };
+-    let (ptr, len) = unpack(packed);
+-    if ptr.is_null() || len == 0 {
+-        return Some("[]".to_string());
+-    }
+-    let data = unsafe { std::slice::from_raw_parts(ptr, len) };
+-    String::from_utf8(data.to_vec()).ok()
+-}
+diff --git a/crates/paporot-core/src/pipeline.rs b/crates/paporot-core/src/pipeline.rs
+index d9a42fd..0f037d7 100644
+--- a/crates/paporot-core/src/pipeline.rs
++++ b/crates/paporot-core/src/pipeline.rs
+@@ -129,7 +129,6 @@ fn scan_skills() -> Result<Vec<(String, SkillToml)>, String> {
+         "runtime-flow-analysis",
+         "behavior-boundary-discovery",
+         "architecture-doc-generator",
+-        "verification-runner",
+     ];
+ 
+     let mut skills = Vec::new();
+@@ -269,8 +268,7 @@ fn read_source_context() -> Option<String> {
+             let full = format!("work/sources/{}", path);
+             if let Some(content) = host::read_file(&full) {
+                 let truncated = if content.len() > 4000 {
+-                    let safe_cut: String = content.chars().take(4000).collect();
+-                    format!("{}... (truncated, {} total bytes)", safe_cut, content.len())
++                    format!("{}... (truncated, {} total bytes)", &content[..4000], content.len())
+                 } else {
+                     content
+                 };
+@@ -289,16 +287,6 @@ fn execute_single_skill(
+     upstream: &HashMap<String, String>,
+     source_context: &Option<String>,
+ ) -> Result<Option<String>, String> {
+-    // ── Procedural skills (no LLM) ───────────────────────────
+-    let is_procedural = skill_toml
+-        .and_then(|t| t.llm_calls.as_ref())
+-        .map(|l| l.max_calls == 0)
+-        .unwrap_or(false);
+-
+-    if is_procedural {
+-        return run_procedural_skill(skill_name, upstream);
+-    }
+-
+     let description = skill_toml
+         .map(|t| t.skill.description.as_str())
+         .unwrap_or(skill_name);
+@@ -480,126 +468,6 @@ fn build_skill_stub(skill_name: &str, upstream: &HashMap<String, String>) -> Str
+     }
+ }
+ 
+-// ─── Procedural Skill Dispatcher (no LLM) ──────────────────────
+-
+-fn run_procedural_skill(skill_name: &str, upstream: &HashMap<String, String>) -> Result<Option<String>, String> {
+-    match skill_name {
+-        "verification-runner" => run_verification_runner(upstream),
+-        _ => Err(format!("Unknown procedural skill: {}", skill_name)),
+-    }
+-}
+-
+-/// Verification Runner — Contract 验证 + Evidence 收集 + Replay Case 保存
+-fn run_verification_runner(upstream: &HashMap<String, String>) -> Result<Option<String>, String> {
+-    use crate::host;
+-
+-    let mut results: Vec<serde_json::Value> = Vec::new();
+-    let mut replay_count: u32 = 0;
+-    let mut overall_pass = true;
+-
+-    // Map upstream skill names to artifact types
+-    for (skill_name, output) in upstream {
+-        // Skip skills that don't produce artifacts to verify
+-        if output.is_empty() || output == "{}" {
+-            continue;
+-        }
+-
+-        let artifact_type = match skill_name.as_str() {
+-            "architecture-doc-generator" => "json",
+-            "dependency-analysis" => "json",
+-            "runtime-flow-analysis" => "json",
+-            "module-discovery" => "json",
+-            "behavior-boundary-discovery" => "json",
+-            "repository-understanding" => "json",
+-            _ => continue,
+-        };
+-
+-        // 1. Contract Verification
+-        let verify_result_json = host::verify_contract(artifact_type, output)
+-            .unwrap_or_else(|| {
+-                format!(r#"{{"status":"ERROR","error":"host_verify_contract failed for {}"}}"#, skill_name)
+-            });
+-
+-        let verify_result: serde_json::Value = serde_json::from_str(&verify_result_json)
+-            .unwrap_or_else(|_| {
+-                serde_json::json!({
+-                    "artifact_id": skill_name,
+-                    "artifact_type": artifact_type,
+-                    "status": "ERROR",
+-                    "rule_results": [],
+-                    "suggestions": ["Failed to parse verification result"]
+-                })
+-            });
+-
+-        let status = verify_result["status"].as_str().unwrap_or("ERROR");
+-
+-        // 2. Evidence Collection
+-        let prev_outputs: serde_json::Value = upstream.iter()
+-            .filter(|(n, _)| n.as_str() != skill_name)
+-            .map(|(n, v)| (n.clone(), serde_json::Value::String(v.clone())))
+-            .collect::<serde_json::Map<_, _>>()
+-            .into();
+-
+-        host::capture_evidence(
+-            skill_name,
+-            &prev_outputs.to_string(),
+-            output,
+-            "{}", // intermediate not available in MVP
+-        );
+-
+-        // 3. FAIL → Save Replay Case
+-        if status != "PASS" {
+-            overall_pass = false;
+-
+-            let case = serde_json::json!({
+-                "case_id": format!("replay-{}", chrono::Utc::now().timestamp_millis()),
+-                "created_at": chrono::Utc::now().to_rfc3339(),
+-                "artifact_type": artifact_type,
+-                "artifact_id": skill_name,
+-                "upstream_input": prev_outputs,
+-                "failed_artifact": output,
+-                "contract_result": verify_result,
+-                "suggestions": verify_result["suggestions"].as_array()
+-                    .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect::<Vec<_>>())
+-                    .unwrap_or_default(),
+-            });
+-
+-            host::save_replay_case(&case.to_string());
+-            replay_count += 1;
+-        }
+-
+-        results.push(serde_json::json!({
+-            "artifact_id": skill_name,
+-            "artifact_type": artifact_type,
+-            "status": status,
+-            "rule_results": verify_result["rule_results"],
+-            "suggestions": verify_result["suggestions"],
+-        }));
+-    }
+-
+-    let overall_status = if overall_pass { "PASS" } else { "FAIL" };
+-    let output = serde_json::json!({
+-        "overall_status": overall_status,
+-        "results": results,
+-        "replay_cases_saved": replay_count,
+-    });
+-
+-    let output_str = serde_json::to_string_pretty(&output)
+-        .map_err(|e| e.to_string())?;
+-
+-    if !overall_pass {
+-        // Write failure details for debugging
+-        let _ = host::write_file("work/verification_failure.json", &output_str);
+-        return Err(format!(
+-            "Verification FAILED: {}/{} artifacts failed. See work/verification_failure.json for details.",
+-            results.iter().filter(|r| r["status"] != "PASS").count(),
+-            results.len(),
+-        ));
+-    }
+-
+-    Ok(Some(output_str))
+-}
+-
+ // ─── 报告生成 ────────────────────────────────────────────────────
+ 
+ fn build_results_json(
+diff --git a/crates/skill-sdk/src/host.rs b/crates/skill-sdk/src/host.rs
+index 58dc30b..c2aece5 100644
+--- a/crates/skill-sdk/src/host.rs
++++ b/crates/skill-sdk/src/host.rs
+@@ -108,83 +108,3 @@ pub fn skill_log(level: i32, msg: &str) {
+     let bytes = msg.as_bytes();
+     unsafe { paporot_log(level, bytes.as_ptr(), bytes.len() as i32) };
+ }
+-
+-// ─── Verification Host Functions ─────────────────────────────────
+-
+-#[link(wasm_import_module = "env")]
+-extern "C" {
+-    /// Contract 验证
+-    /// type_ptr, type_len, content_ptr, content_len -> (result_ptr << 32) | result_len
+-    fn host_verify_contract(
+-        type_ptr: *const u8, type_len: i32,
+-        content_ptr: *const u8, content_len: i32,
+-    ) -> i64;
+-
+-    /// 收集 Evidence
+-    /// id_ptr, id_len, input_ptr, input_len, output_ptr, output_len, intermediate_ptr, intermediate_len -> errno
+-    fn host_capture_evidence(
+-        id_ptr: *const u8, id_len: i32,
+-        input_ptr: *const u8, input_len: i32,
+-        output_ptr: *const u8, output_len: i32,
+-        intermediate_ptr: *const u8, intermediate_len: i32,
+-    ) -> i32;
+-
+-    /// 保存 Replay Case
+-    /// case_ptr, case_len -> errno
+-    fn host_save_replay_case(case_ptr: *const u8, case_len: i32) -> i32;
+-
+-    /// 加载所有 Replay Case
+-    /// -> (cases_ptr << 32) | cases_len
+-    fn host_load_replay_cases() -> i64;
+-}
+-
+-/// 调用 Contract Engine 验证 artifact
+-pub fn verify_contract(artifact_type: &str, artifact_content: &str) -> Option<String> {
+-    let type_bytes = artifact_type.as_bytes();
+-    let content_bytes = artifact_content.as_bytes();
+-    let packed = unsafe {
+-        host_verify_contract(
+-            type_bytes.as_ptr(), type_bytes.len() as i32,
+-            content_bytes.as_ptr(), content_bytes.len() as i32,
+-        )
+-    };
+-    let (ptr, len) = unpack_result(packed);
+-    if ptr.is_null() || len == 0 {
+-        return None;
+-    }
+-    let data = unsafe { std::slice::from_raw_parts(ptr, len) };
+-    String::from_utf8(data.to_vec()).ok()
+-}
+-
+-/// 收集 evidence（内存中，沙盒生命周期内）
+-pub fn capture_evidence(artifact_id: &str, input: &str, output: &str, intermediate: &str) -> i32 {
+-    let id = artifact_id.as_bytes();
+-    let inp = input.as_bytes();
+-    let out = output.as_bytes();
+-    let int = intermediate.as_bytes();
+-    unsafe {
+-        host_capture_evidence(
+-            id.as_ptr(), id.len() as i32,
+-            inp.as_ptr(), inp.len() as i32,
+-            out.as_ptr(), out.len() as i32,
+-            int.as_ptr(), int.len() as i32,
+-        )
+-    }
+-}
+-
+-/// 保存 replay case（FAIL 时持久化）
+-pub fn save_replay_case(case_json: &str) -> i32 {
+-    let bytes = case_json.as_bytes();
+-    unsafe { host_save_replay_case(bytes.as_ptr(), bytes.len() as i32) }
+-}
+-
+-/// 加载所有 replay case
+-pub fn load_replay_cases() -> Option<String> {
+-    let packed = unsafe { host_load_replay_cases() };
+-    let (ptr, len) = unpack_result(packed);
+-    if ptr.is_null() || len == 0 {
+-        return Some("[]".to_string());
+-    }
+-    let data = unsafe { std::slice::from_raw_parts(ptr, len) };
+-    String::from_utf8(data.to_vec()).ok()
+-}
+diff --git a/crates/skill-sdk/src/lib.rs b/crates/skill-sdk/src/lib.rs
+index 8753982..da68efd 100644
+--- a/crates/skill-sdk/src/lib.rs
++++ b/crates/skill-sdk/src/lib.rs
+@@ -4,10 +4,6 @@ pub mod host;
+ 
+ /// Prelude: re-exports all host functions and serde_json helpers
+ pub mod prelude {
+-    pub use crate::host::{
+-        read_input, llm_complete, write_output, write_error,
+-        cache_put, cache_get, skill_log,
+-        verify_contract, capture_evidence, save_replay_case, load_replay_cases,
+-    };
++    pub use crate::host::*;
+     pub use serde_json::{json, Value};
+ }
+diff --git a/crates/skills/Cargo.toml b/crates/skills/Cargo.toml
+index ca60c16..a048fbd 100644
+--- a/crates/skills/Cargo.toml
++++ b/crates/skills/Cargo.toml
+@@ -28,10 +28,6 @@ path = "src/bin/behavior_boundary_discovery.rs"
+ name = "architecture_doc_generator"
+ path = "src/bin/architecture_doc_generator.rs"
+ 
+-[[bin]]
+-name = "verification_runner"
+-path = "src/bin/verification_runner.rs"
+-
+ [dependencies]
+ paporot-skill-sdk = { path = "../skill-sdk" }
+ serde = { version = "1", features = ["derive"] }
+diff --git a/crates/skills/src/bin/verification_runner.rs b/crates/skills/src/bin/verification_runner.rs
+deleted file mode 100644
+index dcaca8c..0000000
+--- a/crates/skills/src/bin/verification_runner.rs
++++ /dev/null
+@@ -1,152 +0,0 @@
+-/// Skill: Verification Runner
+-///
+-/// Goal: 对所有上游 Skill 产出 Artifact 执行 Contract 验证、收集 Evidence、
+-///       在 FAIL 时保存 Replay Case。纯过程式 Skill，不调用 LLM。
+-///
+-/// Inputs:  上游 6 个分析 Skill 的 JSON 输出
+-/// Output:  verification_result JSON (overall_status + per-artifact results)
+-
+-use paporot_skill_sdk::prelude::*;
+-
+-/// 上游 Skill 名 → artifact_type 映射
+-fn skill_to_artifact_type(skill_name: &str) -> &str {
+-    match skill_name {
+-        "architecture-doc-generator"
+-        | "dependency-analysis"
+-        | "runtime-flow-analysis"
+-        | "module-discovery"
+-        | "behavior-boundary-discovery"
+-        | "repository-understanding" => "json",
+-        _ => "json",
+-    }
+-}
+-
+-#[no_mangle]
+-pub extern "C" fn paporot_skill_execute() -> i32 {
+-    let upstream_names = [
+-        "repository-understanding",
+-        "module-discovery",
+-        "dependency-analysis",
+-        "runtime-flow-analysis",
+-        "behavior-boundary-discovery",
+-        "architecture-doc-generator",
+-    ];
+-
+-    let mut results: Vec<Value> = Vec::new();
+-    let mut replay_count: u32 = 0;
+-    let mut overall_pass = true;
+-
+-    for skill_name in &upstream_names {
+-        // 读取上游 Skill 输出
+-        let input_key = format!("skill_output__{}", skill_name);
+-        let output = match read_input(&input_key) {
+-            Some(o) => o,
+-            None => continue, // 上游未产出则跳过
+-        };
+-
+-        if output.is_empty() || output == "{}" {
+-            continue;
+-        }
+-
+-        let artifact_type = skill_to_artifact_type(skill_name);
+-
+-        // 1. Contract 验证
+-        let verify_result_json = verify_contract(artifact_type, &output)
+-            .unwrap_or_else(|| {
+-                format!(
+-                    r#"{{"status":"ERROR","error":"host_verify_contract failed for {}"}}"#,
+-                    skill_name
+-                )
+-            });
+-
+-        let verify_result: Value = serde_json::from_str(&verify_result_json)
+-            .unwrap_or_else(|_| {
+-                json!({
+-                    "artifact_id": skill_name,
+-                    "artifact_type": artifact_type,
+-                    "status": "ERROR",
+-                    "rule_results": [],
+-                    "suggestions": ["Failed to parse verification result"]
+-                })
+-            });
+-
+-        let status = verify_result["status"].as_str().unwrap_or("ERROR");
+-
+-        // 2. Evidence 收集
+-        let prev_outputs = upstream_names
+-            .iter()
+-            .filter(|n| **n != *skill_name)
+-            .filter_map(|n| {
+-                let key = format!("skill_output__{}", n);
+-                read_input(&key).map(|v| (n.to_string(), v))
+-            })
+-            .collect::<Vec<_>>();
+-
+-        let prev_json: Value = prev_outputs
+-            .iter()
+-            .map(|(n, v)| (n.clone(), Value::String(v.clone())))
+-            .collect::<serde_json::Map<_, _>>()
+-            .into();
+-
+-        capture_evidence(
+-            skill_name,
+-            &prev_json.to_string(),
+-            &output,
+-            "{}",
+-        );
+-
+-        // 3. FAIL → 保存 Replay Case
+-        if status != "PASS" {
+-            overall_pass = false;
+-
+-            let case = json!({
+-                "case_id": format!("replay-{:x}", output.as_bytes().as_ptr() as usize),
+-                "created_at": "wasm-sandbox",
+-                "artifact_type": artifact_type,
+-                "artifact_id": skill_name,
+-                "upstream_input": prev_json,
+-                "failed_artifact": output,
+-                "contract_result": verify_result,
+-                "suggestions": verify_result["suggestions"]
+-                    .as_array()
+-                    .map(|a| {
+-                        a.iter()
+-                            .filter_map(|v| v.as_str().map(String::from))
+-                            .collect::<Vec<_>>()
+-                    })
+-                    .unwrap_or_default(),
+-            });
+-
+-            save_replay_case(&case.to_string());
+-            replay_count += 1;
+-        }
+-
+-        results.push(json!({
+-            "artifact_id": skill_name,
+-            "artifact_type": artifact_type,
+-            "status": status,
+-            "rule_results": verify_result["rule_results"],
+-            "suggestions": verify_result["suggestions"],
+-        }));
+-    }
+-
+-    let overall_status = if overall_pass { "PASS" } else { "FAIL" };
+-    let output = json!({
+-        "overall_status": overall_status,
+-        "results": results,
+-        "replay_cases_saved": replay_count,
+-    });
+-
+-    if !overall_pass {
+-        write_error(&format!(
+-            "Verification FAILED: {}/{} artifacts failed",
+-            results.iter().filter(|r| r["status"] != "PASS").count(),
+-            results.len(),
+-        ));
+-    }
+-
+-    write_output(&output);
+-    0
+-}
+-
+-fn main() {}
+diff --git a/designs/verification-layer-design.md b/designs/verification-layer-design.md
+deleted file mode 100644
+index e674ee2..0000000
+--- a/designs/verification-layer-design.md
++++ /dev/null
+@@ -1,359 +0,0 @@
+-# Paporot Verification Layer 设计文档
+-
+-> 基于 [Verification Layer PRD](../docs/Verification%20Layer%20PRD.md) 的结构化需求澄清与设计方案。
+->
+-> 设计日期：2026-06-22
+-
+----
+-
+-## 1. 理解总结
+-
+-- **正在构建**：在 Paporot 现有行为分析能力之上，构建 Verification Layer——一套自动验证 AI 生成 Artifact（JSON / Excalidraw / HTML / Screenshot）正确性的框架，包含 Contract Engine、Evidence Engine、Replay Engine、Judge Engine、Regression Engine 五大引擎。
+-- **为什么存在**：AI Agent 产出速度远超人工审查速度；Skill 输出存在随机性；需要质量把关 + 回归防线并举。
+-- **目标用户**：开发阶段开发者手动触发 + Pipeline 自动集成；上线后收敛为全自动 Pipeline。
+-- **关键约束**：MVP 优先结构正确性，JSON/Excalidraw 零容忍；Contract 秒级本地执行，Judge 分钟级可调 LLM；数据仅存 WASM 沙盒生命周期内。
+-- **明确非目标**：不验证代码（验证可观察行为）；MVP 不含多 Agent Judge 和自动修复。
+-
+----
+-
+-## 2. 假设清单
+-
+-1. JSON / Excalidraw 的结构验证可通过确定性规则（schema 解析、字段校验、元素计数）在秒级完成，无需 LLM。
+-2. 现有 Paporot 的 SQLite 和 `.paporot/` 目录结构可直接扩展以容纳 Verification 数据。
+-3. WASM 沙盒的 host function（`host_read_file` / `host_write_file`）足以支撑 Evidence 的临时存储需求。
+-4. Contract 配置文件的 YAML 格式对目标用户可接受，学习成本低。
+-5. 硬阻断策略不会导致 Pipeline 过度敏感——因为 JSON / Excalidraw 的结构检查是确定性的。
+-
+----
+-
+-## 3. 整体架构
+-
+-```
+-┌─────────────────────────────────────────────────────────────────┐
+-│                      Paporot Core (Native / Rust)                │
+-│                                                                  │
+-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
+-│  │ Contract     │  │ Evidence     │  │ 现有模块              │   │
+-│  │ Engine       │  │ Engine       │  │ Snapshot / Diff /    │   │
+-│  │              │  │              │  │ Graph / SQLite /     │   │
+-│  │ 加载 Contract│  │ 收集 Input   │  │ Analysis             │   │
+-│  │ YAML 配置    │  │ 收集 Output  │  │                      │   │
+-│  │ 本地执行     │  │ 暂存沙盒     │  │                      │   │
+-│  │ 确定性校验   │  │ 生命周期     │  │                      │   │
+-│  │ 返回结果     │  │ Replay 读取  │  │                      │   │
+-│  └──────┬───────┘  └──────┬───────┘  └──────────────────────┘   │
+-│         │                 │                                      │
+-│         │  host_verify_   │  host_capture_                      │
+-│         │  contract()     │  evidence()                          │
+-│         │                 │                                      │
+-├─────────┼─────────────────┼──────────────────────────────────────┤
+-│         ▼                 ▼                  WASM Sandbox        │
+-│  ┌──────────────────────────────────────────────────────────┐   │
+-│  │              Skill Runtime (现有 DAG Engine)              │   │
+-│  │                                                          │   │
+-│  │  Layer 1-5: 现有 6 个分析 Skill                          │   │
+-│  │                        ↓ Artifact Output                 │   │
+-│  │  ┌─────────────────────────────────────────────────┐    │   │
+-│  │  │  verification-runner (门面 Skill, Layer 7)       │    │   │
+-│  │  │    → host_verify_contract()                     │    │   │
+-│  │  │    → host_capture_evidence()                    │    │   │
+-│  │  │    → FAIL → 阻断, 输出修正方案                   │    │   │
+-│  │  │    → PASS → 继续                                │    │   │
+-│  │  └─────────────────────────────────────────────────┘    │   │
+-│  │                                                          │   │
+-│  │  Layer 8: judge-verifier / replay-engine /              │   │
+-│  │           regression-engine (Phase 2/3 Skill)           │   │
+-│  └──────────────────────────────────────────────────────────┘   │
+-└──────────────────────────────────────────────────────────────────┘
+-```
+-
+-### 关键设计决策
+-
+-- **混合架构**：Contract Engine 和 Evidence Engine 放在 Paporot Core（Rust 本地执行），Replay / Judge / Regression Engine 作为 WASM Skill 实现。
+-- **新增 host function**：`host_verify_contract()`、`host_capture_evidence()`、`host_save_replay_case()`、`host_load_replay_cases()`。
+-- 现有 6 个 Skill 无需修改，产出 Artifact 后由 DAG 自动调度 `verification-runner`。
+-- Phase 2/3 的 Skill 在同层级追加，不改变基础架构。
+-
+----
+-
+-## 4. Contract Engine 详解
+-
+-### 4.1 Contract 配置格式
+-
+-用户在 `.paporot/contracts/` 下为每种 Artifact 类型创建 YAML 文件：
+-
+-```yaml
+-# .paporot/contracts/excalidraw.contract.yaml
+-artifact_type: excalidraw
+-version: "1.0"
+-severity: error          # error = 硬阻断, warn = 不阻断
+-
+-rules:
+-  syntax:
+-    valid_json: true
+-    valid_excalidraw_schema: true       # type/version/elements 必填，elements 是数组
+-
+-  structure:
+-    min_elements: 1                     # 至少 1 个元素
+-    no_deleted_only: true               # 不允许所有元素都 isDeleted=true
+-    allowed_element_types:              # 允许的元素类型白名单
+-      - rectangle
+-      - ellipse
+-      - diamond
+-      - text
+-      - arrow
+-      - line
+-      - freedraw
+-      - image
+-    max_elements: 500
+-```
+-
+-```yaml
+-# .paporot/contracts/json.contract.yaml
+-artifact_type: json
+-version: "1.0"
+-severity: error
+-
+-rules:
+-  syntax:
+-    valid_json: true
+-    conforms_to_schema: "analysis_result.schema.json"   # 引用 schema 文件
+-
+-  structure:
+-    required_fields: ["project_name", "modules", "dependencies"]
+-    no_empty_arrays: true
+-```
+-
+-### 4.2 执行引擎
+-
+-```
+-Artifact + Contract配置 → ContractEngine.verify() → VerificationResult
+-                                                         ├─ status: PASS | FAIL
+-                                                         ├─ rule_results: [{rule, pass, detail}]
+-                                                         └─ suggestions: ["修复建议1", "修复建议2"]
+-```
+-
+-### 4.3 内置校验器（纯 Rust，不调用 LLM）
+-
+-| 校验器 | 用途 | 性能 |
+-|--------|------|------|
+-| `JsonSyntaxChecker` | JSON 是否合法、是否符合指定 schema | <1ms |
+-| `ExcalidrawSchemaChecker` | 验证 `type`/`version`/`elements` 必填字段，elements 为合法数组 | <1ms |
+-| `HtmlSyntaxChecker` | HTML 是否 valid（DOM 构建成功） | <10ms |
+-| `StructureAnalyzer` | 元素计数、isDeleted 检测、类型白名单、命名唯一性 | <1ms |
+-| `SchemaValidator` | 对比 JSON Schema 与产出 JSON | <5ms |
+-
+----
+-
+-## 5. Evidence Engine 详解
+-
+-### 5.1 证据生命周期
+-
+-```
+-Skill DAG 执行开始
+-       │
+-       ▼
+-  host_capture_evidence()    ← 每次 Skill 产出 Artifact 时调用
+-       │
+-       ▼ 写入沙盒内存缓冲区
+-  Evidence Buffer            ← WASM 线性内存，不落宿主机磁盘
+-       │
+-       ▼ 用于 Replay / Regression
+-  host_save_replay_case()    ← FAIL 时持久化到 .paporot/regression/cases/ (SQLite)
+-       │
+-       ▼
+-  沙盒退出 → 内存清空         ← Evidence Buffer 自动销毁
+-```
+-
+-### 5.2 证据粒度
+-
+-| 证据项 | 内容 | 存储位置 |
+-|--------|------|----------|
+-| Prompt | LLM 调用的原始 prompt | 内存 → Replay Case（FAIL 时） |
+-| Skill Input | 上游 Skill 传给本 Skill 的数据 | 内存 → Replay Case（FAIL 时） |
+-| Skill Output | 本 Skill 产出的 Artifact | 内存 → Replay Case（FAIL 时） |
+-| Intermediate | 中间态（如 JSON→Excalidraw 的中间表示） | 内存 → Replay Case（FAIL 时） |
+-
+-PASS 场景下 Evidence 仅在内存中留存，沙盒退出即销毁。FAIL 时自动打包为 Replay Case 落盘。
+-
+-### 5.3 Host Function 接口
+-
+-```rust
+-host_capture_evidence(artifact_id, input_json, output_json, intermediate_json) -> errno
+-host_save_replay_case(case_json) -> errno
+-host_load_replay_cases() -> json_array
+-```
+-
+----
+-
+-## 6. verification-runner Skill（门面）
+-
+-### 6.1 DAG 位置
+-
+-```
+-现有 DAG:
+-  Layer 1: repository-understanding
+-  Layer 2: module-discovery
+-  Layer 3: dependency-analysis
+-  Layer 4: runtime-flow-analysis
+-  Layer 5: behavior-boundary-discovery
+-  Layer 6: architecture-doc-generator  ← 产出 JSON / Excalidraw / HTML
+-           │
+-           ▼
+-  Layer 7: verification-runner         ← 新增，MVP 唯一新 Skill
+-           │
+-           ├── Contract 验证（调用 host_verify_contract）
+-           ├── Evidence 收集（调用 host_capture_evidence）
+-           │
+-           ├── PASS → 继续 / 结束
+-           └── FAIL → 保存 Replay Case → 阻断 → 输出错误+修正方案
+-```
+-
+-### 6.2 skill.toml
+-
+-```toml
+-[skill]
+-name = "verification-runner"
+-version = "0.1.0"
+-requires_paporot = "0.3.0"
+-description = "对所有上游 Artifact 执行 Contract 验证、收集 Evidence、在 FAIL 时保存 Replay Case"
+-timeout_secs = 30
+-
+-[outputs]
+-schema = """{
+-  "type": "object",
+-  "properties": {
+-    "overall_status": {"type": "string", "enum": ["PASS", "FAIL"]},
+-    "results": {"type": "array", "items": {"$ref": "#/definitions/ArtifactResult"}},
+-    "replay_cases_saved": {"type": "integer"}
+-  }
+-}"""
+-format = "json"
+-
+-[dependencies]
+-uses_outputs_from = [
+-  "architecture-doc-generator",
+-  "dependency-analysis",
+-  "runtime-flow-analysis"
+-]
+-
+-[llm_calls]
+-max_calls = 0
+-```
+-
+-### 6.3 FAIL 输出示例
+-
+-```json
+-{
+-  "overall_status": "FAIL",
+-  "results": [
+-    {
+-      "artifact_id": "architecture.excalidraw",
+-      "artifact_type": "excalidraw",
+-      "status": "FAIL",
+-      "rule_results": [
+-        {"rule": "valid_excalidraw_schema", "pass": true},
+-        {"rule": "min_elements", "pass": false,
+-         "detail": "expected >= 1, got 0"},
+-        {"rule": "no_deleted_only", "pass": true}
+-      ],
+-      "suggestions": [
+-        "Excalidraw 图中元素数量为 0，请检查 architecture-doc-generator 是否正确生成了 elements 数组",
+-        "建议：检查上游 Skill 的 excalidraw 序列化逻辑，确认 elements 非空"
+-      ]
+-    }
+-  ],
+-  "replay_cases_saved": 1
+-}
+-```
+-
+----
+-
+-## 7. Replay Engine 与 Regression Engine（Phase 2 预览）
+-
+-### 7.1 Replay Engine
+-
+-```
+-Replay Case (历史 FAIL) → 重新注入输入 → 当前 Generator 重新执行
+-                                                    │
+-                                                    ▼
+-                                           新 Artifact
+-                                                    │
+-                                                    ▼
+-                                           Contract 验证
+-                                                    │
+-                                           PASS → 系统已修复
+-                                           FAIL → 问题仍存在
+-```
+-
+-**Replay Case 数据结构：**
+-
+-```json
+-{
+-  "case_id": "uuid",
+-  "created_at": "RFC3339",
+-  "source_commit": "abc123",
+-  "artifact_type": "excalidraw",
+-  "upstream_input": { "..." },
+-  "failed_artifact": { "..." },
+-  "contract_result": { "..." },
+-  "suggestions": ["..."]
+-}
+-```
+-
+-### 7.2 Regression Engine
+-
+-```
+-每次代码变更后：
+-  1. 加载所有历史 Replay Case + 所有 Contract 配置
+-  2. 逐个 Case Replay
+-  3. 逐条 Contract 重新验证
+-  4. 生成 Regression Report
+-
+-Regression Report：
+-  - 新增 FAIL：原来能通过的，现在 FAIL → 回归！
+-  - 修复 PASS：原来 FAIL 的，现在 PASS → 修复确认
+-  - 稳定：状态未变 → 无变化
+-```
+-
+-**存储设计：**
+-
+-```
+-.paporot/regression/
+-├── cases/           ← Replay Case (SQLite)
+-├── reports/         ← Regression Report (JSON)
+-└── history.csv      ← 每次回归的趋势数据
+-```
+-
+----
+-
+-## 8. MVP 范围一览
+-
+-| 维度 | MVP (Phase 1) | Phase 2 | Phase 3 |
+-|------|:--:|:--:|:--:|
+-| Artifact 类型 | JSON, Excalidraw | + HTML, Screenshot | — |
+-| Contract 验证 | 结构正确性 | 语义正确性 | — |
+-| Evidence 收集 | PASS 内存 / FAIL 落盘 | 同左 | 同左 |
+-| Replay | — | 自动重放历史 Case | 同左 |
+-| Regression | — | 自动回归报告 | 同左 |
+-| Judge Agent | — | LLM 语义审核 | 多 Agent |
+-| Auto Fix | — | — | 自动修复循环 |
+-| 用户触发 | CLI + Pipeline | 仅 Pipeline | 仅 Pipeline |
+-
+----
+-
+-## 9. 决策日志
+-
+-| # | 决策 | 备选方案 | 理由 |
+-|---|------|----------|------|
+-| 1 | 混合架构：Contract / Evidence 进 Core，Replay / Judge / Regression 做 Skill | 全部 Skill 化 / 全部 Core | 性能敏感逻辑不宜进 WASM；需 LLM 的逻辑宜复用现有 LLM Bridge |
+-| 2 | Core 引擎 + Skill 门面（方案 C） | 独立管线(A) / 全内联 DAG(B) | 与决策 1 一致，最小侵入，最大复用 |
+-| 3 | Contract 配置用 YAML 声明式 + Rust / WASM 校验插件 | AI 推断 / 纯 Rust 代码 | 用户低门槛配置 + 插件保证配置正确，两层防护 |
+-| 4 | Excalidraw 替代 Mermaid 为目标图格式 | Mermaid | 项目实际使用 Excalidraw |
+-| 5 | 性能分层：Contract 秒级本地，Judge 分钟级可调 LLM | 全同步 / 全异步 | 结构检查确定性高可本地；语义需 LLM 但可接受延迟 |
+-| 6 | 硬阻断 FAIL，输出错误 + 修正方案 | 软警告 / 可配置 | 用户明确选择，保证 JSON / Excalidraw 零容忍 |
+-| 7 | MVP 先结构正确性，Phase 2 再语义 | 同步全覆盖 | 降低 MVP 复杂度，Excalidraw 语义校验需 LLM |
+-| 8 | JSON / Excalidraw 零容忍优先，HTML / Screenshot 后置 | 全类型平权 | 高风险 Artifact 优先保障 |
+-| 9 | 证据仅存沙盒内存，FAIL 时才落盘 Replay Case | 全量持久化 / 全量内存 | 安全约束（沙盒退出自动销毁）+ 失败案例才有回溯价值 |
+-| 10 | 开发阶段 C（双触发），上线后 B（Pipeline 自动） | 仅手动 / 仅自动 | 演进路径清晰，架构需同时支持两种模式 |
+-| 11 | 本地 SQLite 存储 | PostgreSQL / 远程存储 | 与现有架构一致，MVP 保持简单 |
+diff --git a/src/lib.rs b/src/lib.rs
+index 78f8ad4..26b3270 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -18,4 +18,3 @@ pub mod storage;
+ pub mod trace;
+ pub mod trajectory;
+ pub mod types;
+-pub mod verification;
+diff --git a/src/main.rs b/src/main.rs
+index 467b30c..d8511a7 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -12,7 +12,6 @@ use wasmtime_wasi::{DirPerms, FilePerms, WasiCtxBuilder};
+ use wasmtime_wasi::preview1::WasiP1Ctx;
+ 
+ mod config;
+-mod verification;
+ 
+ fn main() -> Result<()> {
+     let args: Vec<String> = std::env::args().collect();
+@@ -104,7 +103,6 @@ struct SandboxHost {
+     wasi: WasiP1Ctx,
+     llm_config: Option<config::LlmConfig>,
+     paporot_dir: PathBuf,
+-    evidence_buffer: verification::evidence::EvidenceBuffer,
+ }
+ 
+ impl SandboxHost {
+@@ -113,12 +111,7 @@ impl SandboxHost {
+         llm_config: Option<config::LlmConfig>,
+         paporot_dir: PathBuf,
+     ) -> Self {
+-        Self {
+-            wasi,
+-            llm_config,
+-            paporot_dir,
+-            evidence_buffer: verification::evidence::EvidenceBuffer::new(),
+-        }
++        Self { wasi, llm_config, paporot_dir }
+     }
+ }
+ 
+@@ -405,103 +398,6 @@ fn register_host_functions(linker: &mut Linker<SandboxHost>) -> Result<()> {
+         },
+     )?;
+ 
+-    // host_verify_contract(type_ptr, type_len, content_ptr, content_len) -> packed_result
+-    linker.func_wrap("env", "host_verify_contract",
+-        |mut caller: Caller<'_, SandboxHost>,
+-         type_ptr: i32, type_len: i32,
+-         content_ptr: i32, content_len: i32| -> i64 {
+-            let mem = match caller.get_export("memory").and_then(|e| e.into_memory()) {
+-                Some(m) => m, None => return 0,
+-            };
+-            let mut t = vec![0u8; type_len as usize];
+-            let mut c = vec![0u8; content_len as usize];
+-            if mem.read(&caller, type_ptr as usize, &mut t).is_err() { return 0; }
+-            if mem.read(&caller, content_ptr as usize, &mut c).is_err() { return 0; }
+-            let artifact_type = String::from_utf8_lossy(&t).into_owned();
+-            let artifact_content = String::from_utf8_lossy(&c).into_owned();
+-
+-            let dir = &caller.data().paporot_dir;
+-            let contract_path = dir.join("contracts").join(format!("{}.contract.yaml", artifact_type));
+-            let contract_yaml = std::fs::read_to_string(&contract_path).unwrap_or_default();
+-
+-            let result = verification::contract::verify_artifact(
+-                &artifact_type, &artifact_type, &artifact_content, &contract_yaml,
+-            );
+-            match result {
+-                Ok(verification_result) => {
+-                    let json = serde_json::to_string(&verification_result).unwrap_or_default();
+-                    pack_to_wasm(&mut caller, json.as_bytes())
+-                }
+-                Err(e) => {
+-                    let err_json = format!(r#"{{"status":"ERROR","error":"{}"}}"#, e);
+-                    pack_to_wasm(&mut caller, err_json.as_bytes())
+-                }
+-            }
+-        },
+-    )?;
+-
+-    // host_capture_evidence(id_ptr, id_len, input_ptr, input_len, output_ptr, output_len, intermediate_ptr, intermediate_len) -> errno
+-    linker.func_wrap("env", "host_capture_evidence",
+-        |mut caller: Caller<'_, SandboxHost>,
+-         id_ptr: i32, id_len: i32,
+-         input_ptr: i32, input_len: i32,
+-         output_ptr: i32, output_len: i32,
+-         intermediate_ptr: i32, intermediate_len: i32| -> i32 {
+-            let mem = match caller.get_export("memory").and_then(|e| e.into_memory()) {
+-                Some(m) => m, None => return 1,
+-            };
+-            let mut id_buf = vec![0u8; id_len as usize];
+-            let mut in_buf = vec![0u8; input_len as usize];
+-            let mut out_buf = vec![0u8; output_len as usize];
+-            let mut int_buf = vec![0u8; intermediate_len as usize];
+-            if mem.read(&caller, id_ptr as usize, &mut id_buf).is_err() { return 1; }
+-            if mem.read(&caller, input_ptr as usize, &mut in_buf).is_err() { return 1; }
+-            if mem.read(&caller, output_ptr as usize, &mut out_buf).is_err() { return 1; }
+-            if mem.read(&caller, intermediate_ptr as usize, &mut int_buf).is_err() { return 1; }
+-
+-            let host = caller.data_mut();
+-            host.evidence_buffer.capture(
+-                &String::from_utf8_lossy(&id_buf),
+-                &String::from_utf8_lossy(&in_buf),
+-                &String::from_utf8_lossy(&out_buf),
+-                &String::from_utf8_lossy(&int_buf),
+-            );
+-            0
+-        },
+-    )?;
+-
+-    // host_save_replay_case(case_ptr, case_len) -> errno
+-    linker.func_wrap("env", "host_save_replay_case",
+-        |mut caller: Caller<'_, SandboxHost>,
+-         case_ptr: i32, case_len: i32| -> i32 {
+-            let mem = match caller.get_export("memory").and_then(|e| e.into_memory()) {
+-                Some(m) => m, None => return 1,
+-            };
+-            let mut buf = vec![0u8; case_len as usize];
+-            if mem.read(&caller, case_ptr as usize, &mut buf).is_err() { return 1; }
+-            let case_json = String::from_utf8_lossy(&buf).into_owned();
+-            let case: verification::types::ReplayCase = match serde_json::from_str(&case_json) {
+-                Ok(c) => c,
+-                Err(_) => return 1,
+-            };
+-            let dir = caller.data().paporot_dir.clone();
+-            match verification::evidence::save_replay_case(&case, &dir) {
+-                Ok(()) => 0,
+-                Err(_) => 1,
+-            }
+-        },
+-    )?;
+-
+-    // host_load_replay_cases() -> packed_json
+-    linker.func_wrap("env", "host_load_replay_cases",
+-        |mut caller: Caller<'_, SandboxHost>| -> i64 {
+-            let dir = caller.data().paporot_dir.clone();
+-            let cases = verification::evidence::load_replay_cases(&dir);
+-            let json = serde_json::to_string(&cases).unwrap_or_else(|_| "[]".into());
+-            pack_to_wasm(&mut caller, json.as_bytes())
+-        },
+-    )?;
+-
+     Ok(())
+ }
+ 
+diff --git a/src/verification/contract.rs b/src/verification/contract.rs
+deleted file mode 100644
+index 8a5489e..0000000
+--- a/src/verification/contract.rs
++++ /dev/null
+@@ -1,885 +0,0 @@
+-//! Contract Engine — loads YAML contracts and validates artifacts.
+-//!
+-//! Pure Rust, no LLM. All checks complete in <10ms.
+-
+-use crate::verification::types::*;
+-
+-/// Verify an artifact against its contract.
+-/// `contract_yaml` is the raw YAML string loaded from .paporot/contracts/.
+-pub fn verify_artifact(
+-    artifact_id: &str,
+-    artifact_type: &str,
+-    artifact_content: &str,
+-    contract_yaml: &str,
+-) -> Result<VerificationResult, String> {
+-    let contract: ContractConfig = serde_yaml::from_str(contract_yaml)
+-        .map_err(|e| format!("Failed to parse contract YAML: {}", e))?;
+-
+-    let mut rule_results = Vec::new();
+-    let mut suggestions = Vec::new();
+-
+-    // ── Syntax Rules ──────────────────────────────────────────
+-    if let serde_yaml::Value::Mapping(ref syntax) = contract.rules.syntax {
+-        for (key, value) in syntax {
+-            let rule_name = key.as_str().unwrap_or("?");
+-            match rule_name {
+-                "valid_json" if is_bool_true(value) => {
+-                    let (pass, detail) = check_valid_json(artifact_content);
+-                    rule_results.push(RuleResult { rule: "valid_json".into(), pass, detail });
+-                }
+-                "conforms_to_schema" => {
+-                    let schema_path = value.as_str().unwrap_or("");
+-                    if !schema_path.is_empty() {
+-                        rule_results.push(RuleResult {
+-                            rule: "conforms_to_schema".into(), pass: true,
+-                            detail: Some(format!("schema file: {} (validated by host)", schema_path)),
+-                        });
+-                    }
+-                }
+-                "valid_excalidraw_schema" if is_bool_true(value) => {
+-                    let (pass, detail) = check_excalidraw_schema(artifact_content);
+-                    rule_results.push(RuleResult { rule: "valid_excalidraw_schema".into(), pass, detail });
+-                }
+-                _ => {}
+-            }
+-        }
+-    }
+-
+-    // ── Structure Rules ───────────────────────────────────────
+-    if let serde_yaml::Value::Mapping(ref structure) = contract.rules.structure {
+-        // Parse artifact content as JSON for structure analysis
+-        let parsed: Option<serde_json::Value> = serde_json::from_str(artifact_content).ok();
+-
+-        for (key, value) in structure {
+-            let rule_name = key.as_str().unwrap_or("?");
+-            match rule_name {
+-                "required_fields" => {
+-                    if let Some(ref v) = parsed {
+-                        let fields: Vec<String> = value
+-                            .as_sequence()
+-                            .map(|s| s.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+-                            .unwrap_or_default();
+-                        for field in &fields {
+-                            let pass = v.get(field).is_some();
+-                            rule_results.push(RuleResult {
+-                                rule: format!("required_field:{}", field),
+-                                pass,
+-                                detail: if !pass {
+-                                    Some(format!("missing required field '{}'", field))
+-                                } else { None },
+-                            });
+-                            if !pass {
+-                                suggestions.push(format!(
+-                                    "输出缺少必填字段 '{}'，请检查上游 Skill 是否正确生成了该字段", field
+-                                ));
+-                            }
+-                        }
+-                    }
+-                }
+-                "no_empty_arrays" if is_bool_true(value) => {
+-                    if let Some(ref v) = parsed {
+-                        let empties = find_empty_arrays(v, "");
+-                        for (path, _) in &empties {
+-                            rule_results.push(RuleResult {
+-                                rule: "no_empty_arrays".into(),
+-                                pass: false,
+-                                detail: Some(format!("empty array at '{}'", path)),
+-                            });
+-                            suggestions.push(format!("字段 '{}' 是空数组，请检查数据源", path));
+-                        }
+-                        if empties.is_empty() {
+-                            rule_results.push(RuleResult {
+-                                rule: "no_empty_arrays".into(), pass: true, detail: None,
+-                            });
+-                        }
+-                    }
+-                }
+-                "min_elements" => {
+-                    if let Some(ref v) = parsed {
+-                        if let Some(elements) = v.get("elements").and_then(|e| e.as_array()) {
+-                            let min = value.as_u64().unwrap_or(1) as usize;
+-                            let count = elements.len();
+-                            let pass = count >= min;
+-                            rule_results.push(RuleResult {
+-                                rule: "min_elements".into(),
+-                                pass,
+-                                detail: Some(format!("elements count: {}, minimum: {}", count, min)),
+-                            });
+-                            if !pass {
+-                                suggestions.push(format!(
+-                                    "元素数量 {} 低于最低要求 {}，请检查生成逻辑", count, min
+-                                ));
+-                            }
+-                        }
+-                    }
+-                }
+-                "max_elements" => {
+-                    if let Some(ref v) = parsed {
+-                        if let Some(elements) = v.get("elements").and_then(|e| e.as_array()) {
+-                            let max = value.as_u64().unwrap_or(500) as usize;
+-                            let count = elements.len();
+-                            let pass = count <= max;
+-                            rule_results.push(RuleResult {
+-                                rule: "max_elements".into(),
+-                                pass,
+-                                detail: Some(format!("elements count: {}, maximum: {}", count, max)),
+-                            });
+-                            if !pass {
+-                                suggestions.push(format!(
+-                                    "元素数量 {} 超过上限 {}，请精简", count, max
+-                                ));
+-                            }
+-                        }
+-                    }
+-                }
+-                "no_deleted_only" if is_bool_true(value) => {
+-                    if let Some(ref v) = parsed {
+-                        if let Some(elements) = v.get("elements").and_then(|e| e.as_array()) {
+-                            if !elements.is_empty() {
+-                                let all_deleted = elements.iter().all(|el| {
+-                                    el.get("isDeleted")
+-                                        .and_then(|d| d.as_bool())
+-                                        .unwrap_or(false)
+-                                });
+-                                let pass = !all_deleted;
+-                                rule_results.push(RuleResult {
+-                                    rule: "no_deleted_only".into(),
+-                                    pass,
+-                                    detail: if !pass {
+-                                        Some("all elements are marked isDeleted=true".into())
+-                                    } else { None },
+-                                });
+-                                if !pass {
+-                                    suggestions.push(
+-                                        "所有元素都被标记为删除，请检查 isDeleted 状态".into()
+-                                    );
+-                                }
+-                            }
+-                        }
+-                    }
+-                }
+-                "allowed_element_types" => {
+-                    if let Some(ref v) = parsed {
+-                        if let Some(elements) = v.get("elements").and_then(|e| e.as_array()) {
+-                            let allowed: Vec<String> = value
+-                                .as_sequence()
+-                                .map(|s| s.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+-                                .unwrap_or_default();
+-                            let mut invalid_types = Vec::new();
+-                            for el in elements {
+-                                if let Some(t) = el.get("type").and_then(|t| t.as_str()) {
+-                                    if !allowed.iter().any(|a| a == t) {
+-                                        invalid_types.push(t.to_string());
+-                                    }
+-                                }
+-                            }
+-                            let pass = invalid_types.is_empty();
+-                            rule_results.push(RuleResult {
+-                                rule: "allowed_element_types".into(),
+-                                pass,
+-                                detail: if !pass {
+-                                    Some(format!("invalid types: {:?}", invalid_types))
+-                                } else { None },
+-                            });
+-                            if !pass {
+-                                suggestions.push(format!(
+-                                    "发现不支持的元素类型: {:?}，允许的类型: {:?}",
+-                                    invalid_types, allowed
+-                                ));
+-                            }
+-                        }
+-                    }
+-                }
+-                _ => {}
+-            }
+-        }
+-    }
+-
+-    let all_pass = rule_results.iter().all(|r| r.pass);
+-    let status = if all_pass { "PASS".to_string() } else { "FAIL".to_string() };
+-
+-    Ok(VerificationResult {
+-        artifact_id: artifact_id.to_string(),
+-        artifact_type: artifact_type.to_string(),
+-        status,
+-        rule_results,
+-        suggestions,
+-    })
+-}
+-
+-// ─── Helpers ────────────────────────────────────────────────────
+-
+-fn is_bool_true(v: &serde_yaml::Value) -> bool {
+-    v.as_bool().unwrap_or(false)
+-}
+-
+-fn check_valid_json(content: &str) -> (bool, Option<String>) {
+-    match serde_json::from_str::<serde_json::Value>(content) {
+-        Ok(_) => (true, None),
+-        Err(e) => (false, Some(format!("invalid JSON: {}", e))),
+-    }
+-}
+-
+-fn check_excalidraw_schema(content: &str) -> (bool, Option<String>) {
+-    let v: serde_json::Value = match serde_json::from_str(content) {
+-        Ok(v) => v,
+-        Err(e) => return (false, Some(format!("not valid JSON: {}", e))),
+-    };
+-
+-    let obj = match v.as_object() {
+-        Some(o) => o,
+-        None => return (false, Some("not a JSON object".into())),
+-    };
+-
+-    // Must have "type" field
+-    if !obj.contains_key("type") {
+-        return (false, Some("missing 'type' field".into()));
+-    }
+-    // Must have "version" field
+-    if !obj.contains_key("version") {
+-        return (false, Some("missing 'version' field".into()));
+-    }
+-    // Must have "elements" array
+-    match obj.get("elements").and_then(|e| e.as_array()) {
+-        Some(_) => (true, None),
+-        None => (false, Some("missing or invalid 'elements' array".into())),
+-    }
+-}
+-
+-fn find_empty_arrays(v: &serde_json::Value, prefix: &str) -> Vec<(String, usize)> {
+-    let mut empties = Vec::new();
+-    match v {
+-        serde_json::Value::Array(arr) => {
+-            if arr.is_empty() {
+-                empties.push((if prefix.is_empty() { "(root)".into() } else { prefix.to_string() }, 0));
+-            }
+-            for (i, item) in arr.iter().enumerate() {
+-                empties.extend(find_empty_arrays(item, &format!("{}[{}]", prefix, i)));
+-            }
+-        }
+-        serde_json::Value::Object(map) => {
+-            for (k, val) in map {
+-                let path = if prefix.is_empty() {
+-                    k.clone()
+-                } else {
+-                    format!("{}.{}", prefix, k)
+-                };
+-                empties.extend(find_empty_arrays(val, &path));
+-            }
+-        }
+-        _ => {}
+-    }
+-    empties
+-}
+-
+-#[allow(dead_code)]
+-fn find_empty_objects(v: &serde_json::Value) -> Vec<String> {
+-    let mut empties = Vec::new();
+-    if let serde_json::Value::Object(map) = v {
+-        for (k, val) in map {
+-            if val.is_object() && val.as_object().map(|o| o.is_empty()).unwrap_or(false) {
+-                empties.push(k.clone());
+-            } else if val.is_object() {
+-                empties.extend(find_empty_objects(val));
+-            }
+-        }
+-    }
+-    empties
+-}
+-
+-// ═══════════════════════════════════════════════════════════════════════
+-// Unit Tests
+-// ═══════════════════════════════════════════════════════════════════════
+-
+-#[cfg(test)]
+-mod tests {
+-    use super::*;
+-
+-    // ── Helpers ────────────────────────────────────────────────────
+-
+-    fn json_contract_yaml() -> String {
+-        r#"artifact_type: json
+-version: "1.0"
+-severity: error
+-
+-rules:
+-  syntax:
+-    valid_json: true
+-
+-  structure:
+-    required_fields:
+-      - project_name
+-      - summary
+-    no_empty_arrays: true
+-"#
+-        .to_string()
+-    }
+-
+-    fn excalidraw_contract_yaml() -> String {
+-        r#"artifact_type: excalidraw
+-version: "1.0"
+-severity: error
+-
+-rules:
+-  syntax:
+-    valid_json: true
+-    valid_excalidraw_schema: true
+-
+-  structure:
+-    min_elements: 1
+-    no_deleted_only: true
+-    allowed_element_types:
+-      - rectangle
+-      - ellipse
+-      - diamond
+-      - text
+-      - arrow
+-      - line
+-      - freedraw
+-      - image
+-    max_elements: 500
+-"#
+-        .to_string()
+-    }
+-
+-    // ═══════════════════════════════════════════════════════════════
+-    // valid_json rule
+-    // ═══════════════════════════════════════════════════════════════
+-
+-    #[test]
+-    fn test_valid_json_passes() {
+-        let result = verify_artifact(
+-            "test-artifact",
+-            "json",
+-            r#"{"project_name":"Test","summary":"ok"}"#,
+-            &json_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        assert_eq!(result.status, "PASS");
+-        assert!(result.rule_results.iter().any(|r| r.rule == "valid_json" && r.pass));
+-    }
+-
+-    #[test]
+-    fn test_valid_json_fails_on_invalid() {
+-        let result = verify_artifact(
+-            "test-artifact",
+-            "json",
+-            r#"not json at all"#,
+-            &json_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        assert_eq!(result.status, "FAIL");
+-        let json_rule = result.rule_results.iter().find(|r| r.rule == "valid_json").unwrap();
+-        assert!(!json_rule.pass);
+-        assert!(json_rule.detail.as_ref().unwrap().contains("invalid JSON"));
+-    }
+-
+-    #[test]
+-    fn test_valid_json_passes_with_null() {
+-        let result = verify_artifact(
+-            "test-artifact",
+-            "json",
+-            "null",
+-            &json_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        // null is valid JSON but fails required_fields (no project_name)
+-        let json_rule = result.rule_results.iter().find(|r| r.rule == "valid_json").unwrap();
+-        assert!(json_rule.pass);
+-    }
+-
+-    // ═══════════════════════════════════════════════════════════════
+-    // Excalidraw schema
+-    // ═══════════════════════════════════════════════════════════════
+-
+-    #[test]
+-    fn test_excalidraw_schema_passes() {
+-        let content = r#"{"type":"excalidraw","version":2,"elements":[{"type":"rectangle","x":0,"y":0}]}"#;
+-        let result = verify_artifact(
+-            "test-excalidraw",
+-            "excalidraw",
+-            content,
+-            &excalidraw_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let schema_rule = result.rule_results.iter().find(|r| r.rule == "valid_excalidraw_schema").unwrap();
+-        assert!(schema_rule.pass);
+-    }
+-
+-    #[test]
+-    fn test_excalidraw_schema_fails_missing_type() {
+-        let content = r#"{"version":2,"elements":[{"type":"rectangle"}]}"#;
+-        let result = verify_artifact(
+-            "test-excalidraw",
+-            "excalidraw",
+-            content,
+-            &excalidraw_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let schema_rule = result.rule_results.iter().find(|r| r.rule == "valid_excalidraw_schema").unwrap();
+-        assert!(!schema_rule.pass);
+-        assert!(schema_rule.detail.as_ref().unwrap().contains("missing 'type' field"));
+-    }
+-
+-    #[test]
+-    fn test_excalidraw_schema_fails_missing_version() {
+-        let content = r#"{"type":"excalidraw","elements":[]}"#;
+-        let result = verify_artifact(
+-            "test-excalidraw",
+-            "excalidraw",
+-            content,
+-            &excalidraw_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let schema_rule = result.rule_results.iter().find(|r| r.rule == "valid_excalidraw_schema").unwrap();
+-        assert!(!schema_rule.pass);
+-        assert!(schema_rule.detail.as_ref().unwrap().contains("missing 'version' field"));
+-    }
+-
+-    #[test]
+-    fn test_excalidraw_schema_fails_missing_elements() {
+-        let content = r#"{"type":"excalidraw","version":2}"#;
+-        let result = verify_artifact(
+-            "test-excalidraw",
+-            "excalidraw",
+-            content,
+-            &excalidraw_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let schema_rule = result.rule_results.iter().find(|r| r.rule == "valid_excalidraw_schema").unwrap();
+-        assert!(!schema_rule.pass);
+-        assert!(schema_rule.detail.as_ref().unwrap().contains("missing or invalid 'elements'"));
+-    }
+-
+-    #[test]
+-    fn test_excalidraw_schema_fails_elements_not_array() {
+-        let content = r#"{"type":"excalidraw","version":2,"elements":"not-an-array"}"#;
+-        let result = verify_artifact(
+-            "test-excalidraw",
+-            "excalidraw",
+-            content,
+-            &excalidraw_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let schema_rule = result.rule_results.iter().find(|r| r.rule == "valid_excalidraw_schema").unwrap();
+-        assert!(!schema_rule.pass);
+-    }
+-
+-    #[test]
+-    fn test_excalidraw_schema_elements_is_array_passes() {
+-        let content = r#"{"type":"excalidraw","version":2,"elements":[]}"#;
+-        let result = verify_artifact(
+-            "test-excalidraw",
+-            "excalidraw",
+-            content,
+-            &excalidraw_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let schema_rule = result.rule_results.iter().find(|r| r.rule == "valid_excalidraw_schema").unwrap();
+-        assert!(schema_rule.pass, "Elements array (even empty) should pass excalidraw schema check");
+-    }
+-
+-    // ═══════════════════════════════════════════════════════════════
+-    // required_fields rule
+-    // ═══════════════════════════════════════════════════════════════
+-
+-    #[test]
+-    fn test_required_fields_all_present() {
+-        let content = r#"{"project_name":"Test","summary":"A summary","extra":"ignored"}"#;
+-        let result = verify_artifact(
+-            "test-artifact", "json", content, &json_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        assert!(result.rule_results.iter().any(|r| r.rule == "required_field:project_name" && r.pass));
+-        assert!(result.rule_results.iter().any(|r| r.rule == "required_field:summary" && r.pass));
+-    }
+-
+-    #[test]
+-    fn test_required_fields_missing_one() {
+-        let content = r#"{"summary":"only summary"}"#;
+-        let result = verify_artifact(
+-            "test-artifact", "json", content, &json_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let field_rule = result.rule_results.iter().find(|r| r.rule == "required_field:project_name").unwrap();
+-        assert!(!field_rule.pass);
+-        assert!(field_rule.detail.as_ref().unwrap().contains("missing required field"));
+-        assert!(!result.suggestions.is_empty());
+-    }
+-
+-    #[test]
+-    fn test_required_fields_on_array_input_all_fail() {
+-        let content = r#"[1, 2, 3]"#;
+-        let result = verify_artifact(
+-            "test-artifact", "json", content, &json_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        // Arrays don't have string-keyed fields, so all required_fields fail
+-        let field_rules: Vec<_> = result.rule_results.iter()
+-            .filter(|r| r.rule.starts_with("required_field:"))
+-            .collect();
+-        assert!(!field_rules.is_empty(), "required_fields should still run on array input");
+-        assert!(field_rules.iter().all(|r| !r.pass), "all required_fields should fail on array");
+-    }
+-
+-    // ═══════════════════════════════════════════════════════════════
+-    // no_empty_arrays rule
+-    // ═══════════════════════════════════════════════════════════════
+-
+-    #[test]
+-    fn test_no_empty_arrays_passes() {
+-        let content = r#"{"project_name":"Test","summary":"ok","items":[1,2,3]}"#;
+-        let result = verify_artifact(
+-            "test-artifact", "json", content, &json_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let rule = result.rule_results.iter().find(|r| r.rule == "no_empty_arrays").unwrap();
+-        assert!(rule.pass);
+-    }
+-
+-    #[test]
+-    fn test_no_empty_arrays_detects_empty() {
+-        let content = r#"{"project_name":"Test","summary":"ok","items":[]}"#;
+-        let result = verify_artifact(
+-            "test-artifact", "json", content, &json_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let empty_rules: Vec<_> = result.rule_results.iter()
+-            .filter(|r| r.rule == "no_empty_arrays" && !r.pass)
+-            .collect();
+-        assert!(!empty_rules.is_empty());
+-    }
+-
+-    #[test]
+-    fn test_no_empty_arrays_nested() {
+-        let content = r#"{"project_name":"Test","summary":"ok","data":{"items":[]}}"#;
+-        let result = verify_artifact(
+-            "test-artifact", "json", content, &json_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let empty_rules: Vec<_> = result.rule_results.iter()
+-            .filter(|r| r.rule == "no_empty_arrays" && !r.pass)
+-            .collect();
+-        assert!(!empty_rules.is_empty());
+-        let first_fail = empty_rules.first().unwrap();
+-        assert!(first_fail.detail.as_ref().unwrap().contains("data.items"));
+-    }
+-
+-    // ═══════════════════════════════════════════════════════════════
+-    // min_elements / max_elements rules
+-    // ═══════════════════════════════════════════════════════════════
+-
+-    #[test]
+-    fn test_min_elements_passes() {
+-        let content = r#"{"type":"excalidraw","version":2,"elements":[
+-            {"type":"rectangle","x":0,"y":0},
+-            {"type":"ellipse","x":1,"y":1}
+-        ]}"#;
+-        let result = verify_artifact(
+-            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let rule = result.rule_results.iter().find(|r| r.rule == "min_elements").unwrap();
+-        assert!(rule.pass);
+-    }
+-
+-    #[test]
+-    fn test_min_elements_fails_with_zero() {
+-        let content = r#"{"type":"excalidraw","version":2,"elements":[]}"#;
+-        let result = verify_artifact(
+-            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let rule = result.rule_results.iter().find(|r| r.rule == "min_elements").unwrap();
+-        assert!(!rule.pass);
+-        assert!(rule.detail.as_ref().unwrap().contains("elements count: 0"));
+-    }
+-
+-    #[test]
+-    fn test_max_elements_passes() {
+-        let elements: Vec<_> = (0..5).map(|i| {
+-            serde_json::json!({"type":"rectangle","x":i,"y":0})
+-        }).collect();
+-        let content = serde_json::json!({
+-            "type": "excalidraw", "version": 2, "elements": elements
+-        }).to_string();
+-
+-        let result = verify_artifact(
+-            "test-excalidraw", "excalidraw", &content, &excalidraw_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let rule = result.rule_results.iter().find(|r| r.rule == "max_elements").unwrap();
+-        assert!(rule.pass);
+-    }
+-
+-    #[test]
+-    fn test_max_elements_fails_when_exceeded() {
+-        let elements: Vec<_> = (0..501).map(|i| {
+-            serde_json::json!({"type":"rectangle","x":i,"y":0})
+-        }).collect();
+-        let content = serde_json::json!({
+-            "type": "excalidraw", "version": 2, "elements": elements
+-        }).to_string();
+-
+-        let result = verify_artifact(
+-            "test-excalidraw", "excalidraw", &content, &excalidraw_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let rule = result.rule_results.iter().find(|r| r.rule == "max_elements").unwrap();
+-        assert!(!rule.pass);
+-    }
+-
+-    // ═══════════════════════════════════════════════════════════════
+-    // no_deleted_only rule
+-    // ═══════════════════════════════════════════════════════════════
+-
+-    #[test]
+-    fn test_no_deleted_only_passes_when_mixed() {
+-        let content = r#"{"type":"excalidraw","version":2,"elements":[
+-            {"type":"rectangle","isDeleted":true},
+-            {"type":"ellipse","isDeleted":false}
+-        ]}"#;
+-        let result = verify_artifact(
+-            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let rule = result.rule_results.iter().find(|r| r.rule == "no_deleted_only").unwrap();
+-        assert!(rule.pass);
+-    }
+-
+-    #[test]
+-    fn test_no_deleted_only_fails_all_deleted() {
+-        let content = r#"{"type":"excalidraw","version":2,"elements":[
+-            {"type":"rectangle","isDeleted":true},
+-            {"type":"ellipse","isDeleted":true}
+-        ]}"#;
+-        let result = verify_artifact(
+-            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let rule = result.rule_results.iter().find(|r| r.rule == "no_deleted_only").unwrap();
+-        assert!(!rule.pass);
+-        assert!(!result.suggestions.is_empty());
+-    }
+-
+-    #[test]
+-    fn test_no_deleted_only_skips_on_non_excalidraw() {
+-        let content = r#"{"project_name":"Test","summary":"ok","elements":[{"isDeleted":true}]}"#;
+-        let result = verify_artifact(
+-            "test-artifact", "json", content, &json_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        assert!(result.rule_results.iter().all(|r| r.rule != "no_deleted_only"));
+-    }
+-
+-    // ═══════════════════════════════════════════════════════════════
+-    // allowed_element_types rule
+-    // ═══════════════════════════════════════════════════════════════
+-
+-    #[test]
+-    fn test_allowed_element_types_passes() {
+-        let content = r#"{"type":"excalidraw","version":2,"elements":[
+-            {"type":"rectangle"},
+-            {"type":"ellipse"},
+-            {"type":"arrow"}
+-        ]}"#;
+-        let result = verify_artifact(
+-            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let rule = result.rule_results.iter().find(|r| r.rule == "allowed_element_types").unwrap();
+-        assert!(rule.pass);
+-    }
+-
+-    #[test]
+-    fn test_allowed_element_types_fails_invalid_type() {
+-        let content = r#"{"type":"excalidraw","version":2,"elements":[
+-            {"type":"rectangle"},
+-            {"type":"foobar_invalid_type"},
+-            {"type":"arrow"}
+-        ]}"#;
+-        let result = verify_artifact(
+-            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let rule = result.rule_results.iter().find(|r| r.rule == "allowed_element_types").unwrap();
+-        assert!(!rule.pass);
+-        assert!(rule.detail.as_ref().unwrap().contains("foobar_invalid_type"));
+-    }
+-
+-    #[test]
+-    fn test_allowed_element_types_all_invalid() {
+-        let content = r#"{"type":"excalidraw","version":2,"elements":[
+-            {"type":"bad1"},
+-            {"type":"bad2"}
+-        ]}"#;
+-        let result = verify_artifact(
+-            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        let rule = result.rule_results.iter().find(|r| r.rule == "allowed_element_types").unwrap();
+-        assert!(!rule.pass);
+-    }
+-
+-    // ═══════════════════════════════════════════════════════════════
+-    // Overall status logic
+-    // ═══════════════════════════════════════════════════════════════
+-
+-    #[test]
+-    fn test_overall_pass_when_all_rules_pass() {
+-        let content = r#"{"type":"excalidraw","version":2,"elements":[
+-            {"type":"rectangle","x":0,"y":0}
+-        ]}"#;
+-        let result = verify_artifact(
+-            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        assert_eq!(result.status, "PASS");
+-        assert!(result.suggestions.is_empty());
+-    }
+-
+-    #[test]
+-    fn test_overall_fail_when_any_rule_fails() {
+-        let content = r#"not json"#;
+-        let result = verify_artifact(
+-            "test-artifact", "json", content, &json_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        assert_eq!(result.status, "FAIL");
+-    }
+-
+-    #[test]
+-    fn test_partial_fail_collects_all_failures() {
+-        let content = r#"{"summary":"ok","items":[],"more":[]}"#;
+-        let result = verify_artifact(
+-            "test-artifact", "json", content, &json_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        assert_eq!(result.status, "FAIL");
+-        let fail_count = result.rule_results.iter().filter(|r| !r.pass).count();
+-        assert!(fail_count >= 2, "Expected at least 2 failures, got {}", fail_count);
+-    }
+-
+-    // ═══════════════════════════════════════════════════════════════
+-    // Edge cases
+-    // ═══════════════════════════════════════════════════════════════
+-
+-    #[test]
+-    fn test_bad_contract_yaml_returns_error() {
+-        let result = verify_artifact(
+-            "test-artifact", "json", "{}", "definitely: not: valid: yaml: [[[",
+-        );
+-        assert!(result.is_err());
+-    }
+-
+-    #[test]
+-    fn test_empty_contract_structure_produces_no_structure_rules() {
+-        let contract = r#"artifact_type: json
+-version: "1.0"
+-severity: error
+-rules:
+-  syntax:
+-    valid_json: true
+-  structure: {}
+-"#;
+-        let result = verify_artifact(
+-            "test-artifact", "json", "{}", contract,
+-        )
+-        .unwrap();
+-
+-        assert_eq!(result.rule_results.len(), 1);
+-        assert!(result.rule_results[0].pass);
+-    }
+-
+-    #[test]
+-    fn test_syntax_rule_not_enabled_does_not_check() {
+-        let contract = r#"artifact_type: json
+-version: "1.0"
+-severity: error
+-rules:
+-  syntax: {}
+-  structure:
+-    required_fields:
+-      - name
+-"#;
+-        let result = verify_artifact(
+-            "test-artifact", "json", "not json!!!!", contract,
+-        )
+-        .unwrap();
+-
+-        assert!(result.rule_results.iter().all(|r| r.rule != "valid_json"));
+-        let name_rule = result.rule_results.iter().find(|r| r.rule == "required_field:name");
+-        assert!(name_rule.is_none());
+-    }
+-
+-    #[test]
+-    fn test_conforms_to_schema_rule() {
+-        let contract = r#"artifact_type: json
+-version: "1.0"
+-severity: error
+-rules:
+-  syntax:
+-    conforms_to_schema: "some_schema.json"
+-  structure: {}
+-"#;
+-        let result = verify_artifact(
+-            "test-artifact", "json", "{}", contract,
+-        )
+-        .unwrap();
+-
+-        let rule = result.rule_results.iter().find(|r| r.rule == "conforms_to_schema").unwrap();
+-        assert!(rule.pass);
+-        assert!(rule.detail.as_ref().unwrap().contains("some_schema.json"));
+-    }
+-
+-    #[test]
+-    fn test_artifact_id_and_type_are_preserved() {
+-        let result = verify_artifact(
+-            "custom-id", "excalidraw", "{}", &json_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        assert_eq!(result.artifact_id, "custom-id");
+-        assert_eq!(result.artifact_type, "excalidraw");
+-    }
+-
+-    #[test]
+-    fn test_excalidraw_valid_with_no_elements_still_fails_min_elements() {
+-        let content = r#"{"type":"excalidraw","version":2,"elements":[]}"#;
+-        let result = verify_artifact(
+-            "test-excalidraw", "excalidraw", content, &excalidraw_contract_yaml(),
+-        )
+-        .unwrap();
+-
+-        assert_eq!(result.status, "FAIL");
+-        assert!(result.rule_results.iter().any(|r| r.rule == "min_elements" && !r.pass));
+-    }
+-}
+diff --git a/src/verification/evidence.rs b/src/verification/evidence.rs
+deleted file mode 100644
+index 51b0ace..0000000
+--- a/src/verification/evidence.rs
++++ /dev/null
+@@ -1,72 +0,0 @@
+-//! Evidence Engine — collects and manages verification evidence.
+-//!
+-//! Evidence lives in WASM sandbox memory during execution.
+-//! On FAIL, relevant evidence is persisted as a Replay Case.
+-
+-use crate::verification::types::*;
+-use std::path::PathBuf;
+-
+-/// In-memory evidence store (lives in SandboxHost state).
+-#[derive(Debug, Default)]
+-pub struct EvidenceBuffer {
+-    pub records: Vec<EvidenceRecord>,
+-}
+-
+-impl EvidenceBuffer {
+-    pub fn new() -> Self {
+-        Self { records: Vec::new() }
+-    }
+-
+-    pub fn capture(&mut self, artifact_id: &str, input: &str, output: &str, intermediate: &str) {
+-        self.records.push(EvidenceRecord {
+-            artifact_id: artifact_id.to_string(),
+-            input: input.to_string(),
+-            output: output.to_string(),
+-            intermediate: intermediate.to_string(),
+-        });
+-    }
+-
+-    /// Get the evidence record for a specific artifact. Returns the LAST match.
+-    pub fn get(&self, artifact_id: &str) -> Option<&EvidenceRecord> {
+-        self.records.iter().rev().find(|r| r.artifact_id == artifact_id)
+-    }
+-}
+-
+-/// Save a replay case to disk (called by host on FAIL).
+-pub fn save_replay_case(case: &ReplayCase, paporot_dir: &PathBuf) -> Result<(), String> {
+-    let dir = paporot_dir.join("regression").join("cases");
+-    std::fs::create_dir_all(&dir)
+-        .map_err(|e| format!("Failed to create regression dir: {}", e))?;
+-
+-    let filename = format!("{}.json", case.case_id);
+-    let path = dir.join(filename);
+-    let json = serde_json::to_string_pretty(case)
+-        .map_err(|e| format!("Failed to serialize replay case: {}", e))?;
+-    std::fs::write(&path, json)
+-        .map_err(|e| format!("Failed to write replay case: {}", e))?;
+-
+-    Ok(())
+-}
+-
+-/// Load all replay cases from disk.
+-pub fn load_replay_cases(paporot_dir: &PathBuf) -> Vec<ReplayCase> {
+-    let dir = paporot_dir.join("regression").join("cases");
+-    if !dir.exists() {
+-        return Vec::new();
+-    }
+-
+-    let mut cases = Vec::new();
+-    if let Ok(entries) = std::fs::read_dir(&dir) {
+-        for entry in entries.flatten() {
+-            let path = entry.path();
+-            if path.extension().map(|e| e == "json").unwrap_or(false) {
+-                if let Ok(content) = std::fs::read_to_string(&path) {
+-                    if let Ok(case) = serde_json::from_str::<ReplayCase>(&content) {
+-                        cases.push(case);
+-                    }
+-                }
+-            }
+-        }
+-    }
+-    cases
+-}
+diff --git a/src/verification/mod.rs b/src/verification/mod.rs
+deleted file mode 100644
+index f48fca8..0000000
+--- a/src/verification/mod.rs
++++ /dev/null
+@@ -1,7 +0,0 @@
+-//! Verification Layer — Contract Engine + Evidence Engine
+-//!
+-//! Core-native modules (not WASM). Called from sandbox via host functions.
+-
+-pub mod contract;
+-pub mod evidence;
+-pub mod types;
+diff --git a/src/verification/types.rs b/src/verification/types.rs
+deleted file mode 100644
+index 4b8c6e0..0000000
+--- a/src/verification/types.rs
++++ /dev/null
+@@ -1,60 +0,0 @@
+-use serde::{Deserialize, Serialize};
+-
+-/// Output from a single Contract verification.
+-#[derive(Debug, Clone, Serialize, Deserialize)]
+-pub struct VerificationResult {
+-    pub artifact_id: String,
+-    pub artifact_type: String,
+-    pub status: String, // "PASS" | "FAIL"
+-    pub rule_results: Vec<RuleResult>,
+-    pub suggestions: Vec<String>,
+-}
+-
+-#[derive(Debug, Clone, Serialize, Deserialize)]
+-pub struct RuleResult {
+-    pub rule: String,
+-    pub pass: bool,
+-    #[serde(skip_serializing_if = "Option::is_none")]
+-    pub detail: Option<String>,
+-}
+-
+-/// YAML contract definition.
+-#[derive(Debug, Clone, Deserialize)]
+-pub struct ContractConfig {
+-    pub artifact_type: String,
+-    #[serde(default)]
+-    pub version: String,
+-    #[serde(default)]
+-    pub severity: String,
+-    pub rules: ContractRules,
+-}
+-
+-#[derive(Debug, Clone, Deserialize)]
+-pub struct ContractRules {
+-    #[serde(default)]
+-    pub syntax: serde_yaml::Value,
+-    #[serde(default)]
+-    pub structure: serde_yaml::Value,
+-}
+-
+-/// A single evidence record.
+-#[derive(Debug, Clone, Serialize, Deserialize)]
+-pub struct EvidenceRecord {
+-    pub artifact_id: String,
+-    pub input: String,
+-    pub output: String,
+-    pub intermediate: String,
+-}
+-
+-/// A saved replay case (persisted on FAIL).
+-#[derive(Debug, Clone, Serialize, Deserialize)]
+-pub struct ReplayCase {
+-    pub case_id: String,
+-    pub created_at: String,
+-    pub artifact_type: String,
+-    pub artifact_id: String,
+-    pub upstream_input: serde_json::Value,
+-    pub failed_artifact: String,
+-    pub contract_result: VerificationResult,
+-    pub suggestions: Vec<String>,
+-}

@@ -9,3 +9,4 @@ pub mod preprocessor;
 pub mod l1_ast;
 pub mod l2_rules;
 pub mod l3_llm_bridge;
+pub mod prompts;

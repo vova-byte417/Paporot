@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paporot 项目现状审计</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --border: #334155;
+    --text: #e2e8f0;
+    --dim: #94a3b8;
+    --accent: #3b82f6;
+    --green: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --purple: #8b5cf6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+  h1 { font-size: 2rem; margin-bottom: 4px; color: #fff; }
+  .subtitle { color: var(--dim); margin-bottom: 40px; }
+  h2 {
+    font-size: 1.35rem;
+    color: var(--accent);
+    margin: 48px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 { color: #cbd5e1; margin: 24px 0 8px; font-size: 1.05rem; }
+  p, li { color: var(--dim); }
+  ul, ol { padding-left: 20px; }
+  li { margin: 4px 0; }
+
+  .summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .card .num { font-size: 2.2rem; font-weight: 700; }
+  .card .label { color: var(--dim); font-size: .85rem; margin-top: 4px; }
+  .num.green { color: var(--green); }
+  .num.red { color: var(--red); }
+  .num.amber { color: var(--amber); }
+  .num.purple { color: var(--purple); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: .9rem;
+  }
+  th, td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th { color: var(--accent); font-weight: 600; }
+  td { color: var(--dim); }
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: .78rem;
+    font-weight: 600;
+  }
+  .tag-done { background: #064e3b; color: var(--green); }
+  .tag-partial { background: #78350f; color: var(--amber); }
+  .tag-missing { background: #7f1d1d; color: var(--red); }
+  .tag-dead { background: #1e293b; color: #64748b; border: 1px solid #334155; }
+
+  .diagram-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin: 24px 0;
+    overflow-x: auto;
+  }
+  .diagram-section img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+  .diagram-section .caption {
+    text-align: center;
+    color: var(--dim);
+    font-size: .82rem;
+    margin-bottom: 16px;
+  }
+
+  .roadmap-step {
+    background: var(--card);
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .roadmap-step .step-title { color: #fff; font-weight: 600; }
+  .roadmap-step .step-desc { color: var(--dim); font-size: .88rem; margin-top: 4px; }
+
+  .cli-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .cli-cmd {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-family: monospace;
+    font-size: .9rem;
+    color: var(--accent);
+  }
+
+  code {
+    background: #1e293b;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: .88rem;
+    color: #e2e8f0;
+  }
+
+  .note {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: .9rem;
+  }
+  .note strong { color: var(--accent); }
+
+  @media (max-width: 640px) {
+    .container { padding: 20px 14px; }
+    h1 { font-size: 1.5rem; }
+    .summary-cards { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Paporot 项目现状审计</h1>
+<p class="subtitle">审计日期：2026-06-23 · 范围：全项目代码 + 设计文档 + WASM 沙盒运行时</p>
+
+<!-- ── SUMMARY ── -->
+<div class="summary-cards">
+  <div class="card">
+    <div class="num green">4</div>
+    <div class="label">可用 CLI 命令</div>
+  </div>
+  <div class="card">
+    <div class="num red">16</div>
+    <div class="label">死代码命令</div>
+  </div>
+  <div class="card">
+    <div class="num amber">3</div>
+    <div class="label">部分实现功能</div>
+  </div>
+  <div class="card">
+    <div class="num purple">5</div>
+    <div class="label">重构着手点</div>
+  </div>
+</div>
+
+<!-- ── SECTION 1 ── -->
+<h2>1. 项目愿景</h2>
+<p>Paporot 是一个 <strong>AI 生成代码的行为审计与沙盒化分析管道</strong>。它回答两个问题：</p>
+<ul>
+  <li><strong>Agent 这次提交改了什么能力？</strong>（6-Skill DAG 自动编排分析）</li>
+  <li><strong>Agent 的行为变好还是变坏了？</strong>（Contract → Evidence → Replay 三层验证）</li>
+</ul>
+
+<!-- ── SECTION 2 ── -->
+<h2>2. 用户实际入口</h2>
+
+<div class="note">
+  <strong>当前 CLI 路由机制：</strong> <code>init</code> / <code>replay</code> → Native 直接执行；其余 → wasmtime 沙盒。沙盒只认 <code>analyze</code> 和 <code>skill list</code>，其他 16 个返回 <code>Unknown command</code>。
+</div>
+
+<div class="diagram-section">
+  <div class="caption">图 1：命令路由 —— 可用（左） vs 死代码（右）</div>
+  <img src="dead-code-map.svg" alt="命令路由对比图" />
+</div>
+
+<!---->
+<h2>3. 已实现功能</h2>
+
+<h3>✅ 完整实现</h3>
+<table>
+<tr><th>模块</th><th>说明</th><th>状态</th></tr>
+<tr><td>WASM 沙盒</td><td>wasmtime 引擎 + 3 个 host function</td><td><span class="tag tag-done">✓</span></td></tr>
+<tr><td>Skill DAG 编排</td><td>Kahn 拓扑排序 + 同层并行 + 失败降级</td><td><span class="tag tag-done">✓</span></td></tr>
+<tr><td>6 个分析 Skill</td><td>L1 repository-understanding → L6 architecture-doc-generator</td><td><span class="tag tag-done">✓</span></td></tr>
+<tr><td>P0/P1/P2 轨迹分析</td><td>行为状态机 + 10维轨迹向量 + 耦合图（库代码，未接入管线）</td><td><span class="tag tag-done">✓</span></td></tr>
+<tr><td>Agent 日志适配器</td><td>DeepSeek / OpenAI / Claude 适配器</td><td><span class="tag tag-done">✓</span></td></tr>
+<tr><td>Contract Engine</td><td>JSON/Excalidraw Schema 校验，34 个测试全过</td><td><span class="tag tag-done">✓</span></td></tr>
+<tr><td>Evidence Engine</td><td>沙盒内存缓冲 + FAIL 落盘</td><td><span class="tag tag-done">✓</span></td></tr>
+<tr><td>Replay Engine</td><td>analyze 末尾自动回归 + standaline 命令，5 个测试全过</td><td><span class="tag tag-done">✓</span></td></tr>
+<tr><td>报告输出</td><td>analysis_result.json + architecture.md + dashboard.html</td><td><span class="tag tag-done">✓</span></td></tr>
+</table>
+
+<h3>⚠️ 部分实现</h3>
+<table>
+<tr><th>功能</th><th>状态</th></tr>
+<tr><td>PRD Coverage Skill</td><td>只有 <code>skill.toml</code>，无 <code>skill.wasm</code></td></tr>
+<tr><td>HTML Artifact 校验</td><td>Contract YAML 存在但 <code>contract.rs</code> 无 checker</td></tr>
+<tr><td>JSON Schema 校验</td><td><code>conforms_to_schema</code> 总是返回 pass，假实现</td></tr>
+</table>
+
+<h3>❌ 未实现</h3>
+<ul>
+  <li>Judge Engine（LLM 语义审核）</li>
+  <li>Auto Fix（自动修复循环）</li>
+  <li>Skill SDK 宏 <code>#[skill(...)]</code></li>
+  <li>Dashboard 多版本时间线</li>
+</ul>
+
+<!-- ── SECTION 4 ── -->
+<h2>4. 架构对比</h2>
+
+<div class="diagram-section">
+  <div class="caption">图 2：旧架构 —— Agent 三层漏斗（16 条命令，全部不可达）</div>
+  <img src="old-architecture.svg" alt="旧架构图" />
+</div>
+
+<div class="diagram-section">
+  <div class="caption">图 3：新架构 —— WASM Skill DAG 沙盒管线（4 个可用命令）</div>
+  <img src="new-architecture.svg" alt="新架构图" />
+</div>
+
+<div class="note">
+  <strong>关键区别：</strong>旧架构在 Native 进程内直接执行 L1→L2→L3 漏斗，新架构把所有分析逻辑隔离在 paporot-core.wasm 沙盒内，通过 6 个 Skill + DAG 调度执行，只通过 3 个受控 host function 与外部交互。
+</div>
+
+<!-- ── SECTION 5 ── -->
+<h2>5. 技术债清单</h2>
+
+<h3>P0 — 架构债</h3>
+<table>
+<tr><th>#</th><th>债项</th><th>影响</th></tr>
+<tr><td>1</td><td>16 个死代码命令在 <code>src/commands/</code> 下编译但不可达</td><td>维护负担、用户困惑、编译时间浪费</td></tr>
+<tr><td>2</td><td>旧 Agent API（<code>src/agent.rs</code>）基于旧架构，WASM 不调用</td><td>代码膨胀</td></tr>
+<tr><td>3</td><td><code>src/storage.rs</code> SQLite 路径与 host_write_file 双重存储</td><td>实际只用一个</td></tr>
+<tr><td>4</td><td>设计文档引用断裂（docs/ 目录不存在）</td><td>文档不可追溯</td></tr>
+</table>
+
+<h3>P1 — 代码质债</h3>
+<table>
+<tr><th>#</th><th>债项</th></tr>
+<tr><td>5</td><td><code>src/skills/</code> 与 <code>crates/paporot-core/</code> 双重 Skill 执行逻辑</td></tr>
+<tr><td>6</td><td><code>crates/skills/</code> 的 verification_runner 与 pipeline.rs 重复</td></tr>
+<tr><td>7</td><td>23 个编译 warning（unused imports, dead code）</td></tr>
+</table>
+
+<h3>P2 — 功能债</h3>
+<ul>
+  <li>prd-coverage Skill 只有 <code>.toml</code> 无 <code>.wasm</code></li>
+  <li>HTML Contract 校验器缺失</li>
+  <li>Loop Engineering C4-C5 未达标（Judge + Auto Fix 完全缺失）</li>
+</ul>
+
+<!-- ── SECTION 6 ── -->
+<h2>6. 重构路线图</h2>
+
+<div class="roadmap-step">
+  <div class="step-title">第一步：清洗死代码 CLI</div>
+  <div class="step-desc">删除 <code>src/commands/</code> 下 16 个不可达命令文件、<code>src/agent.rs</code>、<code>src/storage.rs</code>，精简 <code>src/cli.rs</code> 到只保留 4 个可用命令。低风险、高价值。</div>
+</div>
+
+<div class="roadmap-step">
+  <div class="step-title">第二步：添加 <code>paporot skill run &lt;name&gt;</code></div>
+  <div class="step-desc">允许用户单独运行某个 Skill，自动补齐 DAG 依赖链。修改 <code>crates/paporot-core/src/main.rs</code> 的 skill 子命令。</div>
+</div>
+
+<div class="roadmap-step">
+  <div class="step-title">第三步：补 MVP 功能坑</div>
+  <div class="step-desc">prd-coverage Skill → 编译 .wasm；HTML syntax checker；conforms_to_schema 真校验。</div>
+</div>
+
+<div class="roadmap-step">
+  <div class="step-title">第四步：合并重复的 Skill 执行逻辑</div>
+  <div class="step-desc">统一 <code>pipeline.rs</code> 与 <code>verification_runner.rs</code> 的重复代码。</div>
+</div>
+
+<div class="roadmap-step">
+  <div class="step-title">第五步：清理警告 + 修复文档引用</div>
+  <div class="step-desc"><code>cargo fix</code> 解决 23 个 warning，补全 docs/ 目录的 PRD 引用。</div>
+</div>
+
+<!-- ── SECTION 7 ── -->
+<h2>7. 建议的最终 CLI 形态</h2>
+
+<div class="cli-bar">
+  <span class="cli-cmd">paporot init</span>
+  <span class="cli-cmd">paporot analyze [--prd &lt;p&gt;]</span>
+  <span class="cli-cmd">paporot skill list</span>
+  <span class="cli-cmd">paporot skill run &lt;name&gt;</span>
+  <span class="cli-cmd">paporot replay list</span>
+  <span class="cli-cmd">paporot replay show &lt;id&gt;</span>
+  <span class="cli-cmd">paporot replay stats</span>
+  <span class="cli-cmd">paporot replay run --from --to</span>
+</div>
+
+<p style="margin-top: 12px;">8 个命令，每个都可运行。<code>analyze</code> 末尾自动跑 Replay 并输出回归摘要。</p>
+
+<!-- ── FOOTER ── -->
+<div class="note" style="margin-top: 48px;">
+  <strong>附录：</strong>死代码架构详情、新旧对比表、删除路线见 <a href="PROJECT_AUDIT.md" style="color:var(--accent)">PROJECT_AUDIT.md</a>。Excalidraw 源文件见 <code>docs/old-architecture.excalidraw</code>、<code>docs/new-architecture.excalidraw</code>、<code>docs/dead-code-map.excalidraw</code>。
+</div>
+
+</div>
+</body>
+</html>

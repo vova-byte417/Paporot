@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paporot Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+  * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+  :root {{
+    --bg: #111827;
+    --bg-elevated: #1F2937;
+    --text: #F9FAFB;
+    --text-dim: #9CA3AF;
+    --text-muted: #6B7280;
+    --brand: #6366F1;
+    --brand-dim: rgba(99,102,241,0.15);
+    --cyan: #06B6D4;
+    --cyan-dim: rgba(6,182,212,0.15);
+    --amber: #F59E0B;
+    --amber-dim: rgba(245,158,11,0.15);
+    --red: #EF4444;
+    --red-dim: rgba(239,68,68,0.15);
+    --green: #22C55E;
+    --green-dim: rgba(34,197,94,0.15);
+    --card-bg: rgba(255,255,255,0.03);
+    --card-border: rgba(255,255,255,0.06);
+    --card-hover: rgba(255,255,255,0.05);
+    --sidebar-width: 280px;
+    --header-height: 56px;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }}
+  html {{ scroll-behavior: smooth; }}
+  body {{
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+  }}
+
+  /* Header */
+  .header {{
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: var(--header-height);
+    background: rgba(17,24,39,0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--card-border);
+    display: flex; align-items: center; padding: 0 24px;
+  }}
+  .header-logo {{
+    font-size: 16px; font-weight: 700;
+    background: linear-gradient(135deg, var(--brand), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-right: 40px; white-space: nowrap;
+  }}
+  .header-nav {{ display: flex; gap: 4px; flex: 1; }}
+  .header-nav-btn {{
+    padding: 6px 20px; border-radius: 8px;
+    font-size: 13px; font-weight: 500; color: var(--text-dim);
+    background: transparent; border: none; cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font);
+  }}
+  .header-nav-btn:hover {{ color: var(--text); background: var(--card-bg); }}
+  .header-nav-btn.active {{
+    color: var(--brand); background: var(--brand-dim);
+  }}
+  .header-version {{
+    font-size: 11px; color: var(--text-muted);
+    padding: 4px 10px; border-radius: 6px;
+    background: var(--card-bg); border: 1px solid var(--card-border);
+  }}
+
+  /* Layout */
+  .layout {{ display: flex; height: calc(100vh - var(--header-height)); margin-top: var(--header-height); }}
+
+  /* Sidebar */
+  .sidebar {{
+    width: var(--sidebar-width); min-width: var(--sidebar-width);
+    background: rgba(17,24,39,0.8);
+    border-right: 1px solid var(--card-border);
+    display: flex; flex-direction: column;
+    overflow-y: auto; overflow-x: hidden;
+  }}
+  .sidebar-section {{
+    padding: 16px; border-bottom: 1px solid var(--card-border);
+  }}
+  .sidebar-section-title {{
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin-bottom: 12px;
+  }}
+  .sidebar-task-item {{
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-radius: 8px;
+    cursor: pointer; transition: background 0.15s;
+    font-size: 13px;
+  }}
+  .sidebar-task-item:hover {{ background: var(--card-bg); }}
+  .task-dot {{
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }}
+  .task-dot.added {{ background: var(--brand); }}
+  .task-dot.removed {{ background: var(--red); }}
+  .task-dot.mixed {{ background: var(--amber); }}
+  .task-info {{ overflow: hidden; }}
+  .task-date {{ font-size: 11px; color: var(--text-muted); }}
+  .task-desc {{ font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
+  .sidebar-module-tag {{
+    display: inline-block; padding: 4px 10px; margin: 2px 4px 2px 0;
+    border-radius: 6px; font-size: 11px; font-weight: 500;
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    color: var(--text-dim); cursor: pointer;
+    transition: all 0.15s;
+  }}
+  .sidebar-module-tag:hover {{
+    background: var(--brand-dim); color: var(--brand);
+    border-color: rgba(99,102,241,0.3);
+  }}
+  .sidebar-module-tag .tag-count {{
+    font-size: 10px; color: var(--text-muted); margin-left: 4px;
+  }}
+
+  /* Main content */
+  .main {{
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    scroll-behavior: smooth;
+  }}
+  .main::-webkit-scrollbar {{ width: 6px; }}
+  .main::-webkit-scrollbar-track {{ background: transparent; }}
+  .main::-webkit-scrollbar-thumb {{ background: var(--card-border); border-radius: 3px; }}
+
+  .tab-panel {{ display: none; padding: 32px; min-height: 100%; }}
+  .tab-panel.active {{ display: block; }}
+
+  /* Billboard */
+  .billboard {{
+    margin-bottom: 32px; padding: 40px 48px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(6,182,212,0.04) 100%);
+    border: 1px solid var(--card-border); border-radius: 16px;
+  }}
+  .billboard-headline {{
+    font-size: 36px; font-weight: 800; line-height: 1.3;
+    background: linear-gradient(135deg, var(--brand) 0%, #818CF8 50%, var(--cyan) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px; letter-spacing: -0.02em;
+  }}
+  .billboard-subtitle {{
+    font-size: 16px; color: var(--text-dim); font-weight: 400;
+    line-height: 1.6; margin-bottom: 20px;
+  }}
+  .billboard-tags {{ display: flex; gap: 10px; flex-wrap: wrap; }}
+  .billboard-tag {{
+    padding: 5px 14px; border-radius: 20px;
+    font-size: 12px; font-weight: 500;
+    border: 1px solid var(--card-border);
+  }}
+  .billboard-tag.files {{ background: var(--brand-dim); color: #A5B4FC; border-color: rgba(99,102,241,0.3); }}
+  .billboard-tag.additions {{ background: var(--green-dim); color: #86EFAC; border-color: rgba(34,197,94,0.3); }}
+  .billboard-tag.deletions {{ background: var(--red-dim); color: #FCA5A5; border-color: rgba(239,68,68,0.3); }}
+  .billboard-tag.modules {{ background: var(--cyan-dim); color: #67E8F9; border-color: rgba(6,182,212,0.3); }}
+  .billboard-tag.risk-high {{ background: var(--red-dim); color: #FCA5A5; border-color: rgba(239,68,68,0.4); }}
+  .billboard-tag.risk-medium {{ background: var(--amber-dim); color: #FCD34D; border-color: rgba(245,158,11,0.4); }}
+  .billboard-tag.risk-low {{ background: var(--green-dim); color: #86EFAC; border-color: rgba(34,197,94,0.4); }}
+
+  /* Stats bar */
+  .stats-bar {{
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    margin-bottom: 32px;
+  }}
+  .stat-card {{
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 20px 24px;
+    transition: border-color 0.2s;
+  }}
+  .stat-card:hover {{ border-color: rgba(99,102,241,0.3); }}
+  .stat-value {{
+    font-size: 32px; font-weight: 700; line-height: 1.1;
+    margin-bottom: 4px;
+  }}
+  .stat-value.files {{ color: var(--brand); }}
+  .stat-value.lines-added {{ color: var(--green); }}
+  .stat-value.lines-deleted {{ color: var(--red); }}
+  .stat-value.pass-rate {{ color: var(--cyan); }}
+  .stat-label {{ font-size: 12px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }}
+
+  /* Waterfall */
+  .waterfall-section {{
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 24px; margin-bottom: 32px;
+  }}
+  .waterfall-title {{
+    font-size: 16px; font-weight: 600; margin-bottom: 4px;
+    color: var(--text);
+  }}
+  .waterfall-subtitle {{
+    font-size: 12px; color: var(--text-muted); margin-bottom: 16px;
+  }}
+  .waterfall-svg {{ width: 100%; height: 500px; border-radius: 8px; background: rgba(0,0,0,0.15); }}
+  .waterfall-legend {{
+    display: flex; gap: 24px; margin-top: 12px;
+    font-size: 11px; color: var(--text-dim);
+  }}
+  .legend-item {{ display: flex; align-items: center; gap: 6px; }}
+  .legend-dot {{ width: 8px; height: 8px; border-radius: 50%; }}
+  .legend-dot.core {{ background: var(--brand); }}
+  .legend-dot.affected {{ background: var(--cyan); width: 10px; height: 8px; border-radius: 2px; }}
+  .legend-dot.downstream {{ background: rgba(255,255,255,0.2); }}
+
+  /* Tooltips */
+  .d3-tooltip {{
+    position: absolute; pointer-events: none;
+    background: #1F2937; color: var(--text);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px; padding: 12px 16px;
+    font-size: 12px; font-family: var(--font);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    max-width: 360px; z-index: 200;
+  }}
+  .d3-tooltip .tt-title {{ font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--brand); }}
+  .d3-tooltip .tt-row {{ display: flex; justify-content: space-between; gap: 16px; padding: 2px 0; }}
+  .d3-tooltip .tt-label {{ color: var(--text-dim); }}
+  .d3-tooltip .tt-value {{ font-weight: 500; }}
+  .d3-tooltip .tt-file {{ font-size: 11px; color: var(--text-muted); word-break: break-all; }}
+
+  /* Interpretations */
+  .interpretations-section {{
+    display: flex; flex-direction: column; gap: 16px;
+  }}
+  .interp-card {{
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 24px;
+  }}
+  .interp-header {{ display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }}
+  .interp-module {{
+    font-size: 16px; font-weight: 700;
+    background: linear-gradient(135deg, var(--brand), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }}
+  .interp-risk {{
+    padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }}
+  .interp-risk.high {{ background: var(--red-dim); color: var(--red); }}
+  .interp-risk.medium {{ background: var(--amber-dim); color: var(--amber); }}
+  .interp-risk.low {{ background: var(--green-dim); color: var(--green); }}
+  .interp-desc {{ font-size: 14px; color: var(--text-dim); line-height: 1.7; margin-bottom: 12px; }}
+  .interp-symbols {{ display: flex; gap: 6px; flex-wrap: wrap; }}
+  .interp-symbol {{
+    padding: 2px 10px; border-radius: 6px; font-size: 11px;
+    background: var(--brand-dim); color: #A5B4FC;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }}
+
+  /* Panorama */
+  .panorama-container {{
+    width: 100%; height: calc(100vh - var(--header-height) - 64px);
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 12px; position: relative; overflow: hidden;
+  }}
+  .panorama-svg {{ width: 100%; height: 100%; }}
+
+  /* Tasks table */
+  .tasks-table {{
+    width: 100%; border-collapse: collapse;
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 12px; overflow: hidden;
+  }}
+  .tasks-table th {{
+    text-align: left; padding: 14px 20px;
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--card-border);
+  }}
+  .tasks-table td {{
+    padding: 14px 20px; font-size: 13px;
+    border-bottom: 1px solid var(--card-border);
+  }}
+  .tasks-table tr:last-child td {{ border-bottom: none; }}
+  .tasks-table tr:hover td {{ background: var(--card-hover); }}
+  .outcome-badge {{
+    padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+  }}
+  .outcome-badge.pass {{ background: var(--green-dim); color: var(--green); }}
+  .outcome-badge.fail {{ background: var(--red-dim); color: var(--red); }}
+  .outcome-badge.partial {{ background: var(--amber-dim); color: var(--amber); }}
+
+  /* Animations */
+  @keyframes pulse {{
+    0%, 100% {{ opacity: 1; }}
+    50% {{ opacity: 0.4; }}
+  }}
+  @keyframes pulse-ring {{
+    0% {{ r: 6; opacity: 0.6; }}
+    100% {{ r: 16; opacity: 0; }}
+  }}
+  .pulse-dot {{ animation: pulse 2s ease-in-out infinite; }}
+
+  @media (max-width: 1024px) {{
+    .stats-bar {{ grid-template-columns: repeat(2, 1fr); }}
+    .sidebar {{ width: 220px; min-width: 220px; }}
+  }}
+  @media (max-width: 768px) {{
+    .sidebar {{ display: none; }}
+    .stats-bar {{ grid-template-columns: 1fr; }}
+    .billboard {{ padding: 24px; }}
+    .billboard-headline {{ font-size: 24px; }}
+  }}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">◈ Paporot Dashboard</div>
+  <div class="header-nav" id="headerNav">
+    <button class="header-nav-btn active" data-tab="narrative">变更叙事</button>
+    <button class="header-nav-btn" data-tab="panorama">能力全景</button>
+    <button class="header-nav-btn" data-tab="tasks">Tasks</button>
+  </div>
+  <div class="header-version" id="headerVersion">v{version}</div>
+</div>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">📋 Task 记录</div>
+      <div id="sidebarTasks"></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">📦 模块索引</div>
+      <div id="sidebarModules"></div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main" id="mainContent">
+
+    <!-- Tab: 变更叙事 -->
+    <div class="tab-panel active" id="tab-narrative">
+      <!-- Billboard -->
+      <div class="billboard" id="billboard">
+        <div class="billboard-headline" id="billboardHeadline"></div>
+        <div class="billboard-subtitle" id="billboardSubtitle"></div>
+        <div class="billboard-tags" id="billboardTags"></div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-bar" id="statsBar"></div>
+
+      <!-- Waterfall -->
+      <div class="waterfall-section" id="waterfallSection">
+        <div class="waterfall-title">影响范围 · 瀑布式扩散</div>
+        <div class="waterfall-subtitle">符号变更 → 模块耦合 → 下游影响</div>
+        <svg class="waterfall-svg" id="waterfallSvg"></svg>
+        <div class="waterfall-legend">
+          <span class="legend-item"><span class="legend-dot core"></span> 核心变更（符号级）</span>
+          <span class="legend-item"><span class="legend-dot affected"></span> 受影响模块</span>
+          <span class="legend-item"><span class="legend-dot downstream"></span> 下游依赖</span>
+        </div>
+      </div>
+
+      <!-- LLM Interpretations -->
+      <div class="interpretations-section" id="interpretationsSection">
+        <h3 style="font-size:16px;font-weight:600;margin-bottom:4px;">LLM 解读</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">各受影响模块的详细变更分析</p>
+        <div id="interpretationsList"></div>
+      </div>
+    </div>
+
+    <!-- Tab: 能力全景 -->
+    <div class="tab-panel" id="tab-panorama">
+      <div class="panorama-container" id="panoramaContainer">
+        <svg class="panorama-svg" id="panoramaSvg"></svg>
+      </div>
+    </div>
+
+    <!-- Tab: Tasks -->
+    <div class="tab-panel" id="tab-tasks">
+      <h3 style="font-size:16px;font-weight:600;margin-bottom:16px;">评估任务详情</h3>
+      <table class="tasks-table" id="tasksTable">
+        <thead>
+          <tr><th>Eval ID</th><th>描述</th><th>分类</th><th>模块</th><th>结果</th><th>日期</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+
+<!-- D3 tooltip (hidden) -->
+<div class="d3-tooltip" id="d3Tooltip" style="display:none;"></div>
+
+<script>
+// ─── Data Injection ──────────────────────────────────────
+const D = {data_json};
+const VERSION = '{version}';
+
+// ─── DOM refs ────────────────────────────────────────────
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
+
+// ─── Tab switching ───────────────────────────────────────
+function switchTab(tabName) {{
+  $$('.tab-panel').forEach(p => p.classList.remove('active'));
+  $$('.header-nav-btn').forEach(b => b.classList.remove('active'));
+  const panel = document.getElementById('tab-' + tabName);
+  if (panel) panel.classList.add('active');
+  const btn = document.querySelector('[data-tab="' + tabName + '"]');
+  if (btn) btn.classList.add('active');
+
+  if (tabName === 'panorama') {{
+    requestAnimationFrame(() => renderPanorama());
+  }}
+}}
+
+$$('.header-nav-btn').forEach(btn => {{
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+}});
+
+// ─── Tooltip helpers ─────────────────────────────────────
+const tooltip = document.getElementById('d3Tooltip');
+function showTooltip(html, evt) {{
+  tooltip.innerHTML = html;
+  tooltip.style.display = 'block';
+  const x = evt.pageX + 16;
+  const y = evt.pageY - 10;
+  tooltip.style.left = Math.min(x, window.innerWidth - 380) + 'px';
+  tooltip.style.top = y + 'px';
+}}
+function moveTooltip(evt) {{
+  tooltip.style.left = Math.min(evt.pageX + 16, window.innerWidth - 380) + 'px';
+  tooltip.style.top = (evt.pageY - 10) + 'px';
+}}
+function hideTooltip() {{ tooltip.style.display = 'none'; }}
+
+// ═══════════════════════════════════════════════════════════
+// SIDEBAR
+// ═══════════════════════════════════════════════════════════
+function renderSidebar() {{
+  // Task history
+  const taskContainer = document.getElementById('sidebarTasks');
+  const eval = D.eval;
+  const date = eval.date || eval.created_at.slice(0, 10);
+  const hasAdded = D.symbols && D.symbols.added && D.symbols.added.length > 0;
+  const hasRemoved = D.symbols && D.symbols.removed && D.symbols.removed.length > 0;
+  let dotClass = 'mixed';
+  if (hasAdded && !hasRemoved) dotClass = 'added';
+  else if (!hasAdded && hasRemoved) dotClass = 'removed';
+
+  const outcomeLabel = eval.outcome || 'unknown';
+  const outcomeLower = outcomeLabel.toLowerCase();
+  const outcomeColor = outcomeLower.includes('pass') ? 'var(--green)' :
+    outcomeLower.includes('fail') ? 'var(--red)' : 'var(--amber)';
+
+  taskContainer.innerHTML = `
+    <div class="sidebar-task-item" style="border:1px solid var(--card-border);">
+      <div class="task-dot ${{dotClass}}" style="box-shadow: 0 0 6px ${{outcomeColor}};"></div>
+      <div class="task-info">
+        <div class="task-date">${{date}}</div>
+        <div class="task-desc">${{escapeHtml(eval.task.description || 'Untitled')}}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+          ${{D.filesChanged}} 文件 · ${{D.additions}}/+${{D.deletions}}/- · ${{outcomeLabel}}
+        </div>
+      </div>
+    </div>
+  `;
+
+  if (D.prevTrials > 0) {{
+    const info = document.createElement('div');
+    info.style.cssText = 'font-size:11px;color:var(--text-muted);padding:8px 12px;';
+    info.textContent = '+ ' + D.prevTrials + ' 条历史记录';
+    taskContainer.appendChild(info);
+  }}
+
+  // Module index
+  const modContainer = document.getElementById('sidebarModules');
+  const allMods = (D.waterfall && D.waterfall.allModules) ? D.waterfall.allModules : (D.modules || []);
+  if (allMods.length === 0) {{
+    modContainer.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">暂无模块数据</span>';
+  }} else {{
+    modContainer.innerHTML = '';
+    const symsByMod = (D.waterfall && D.waterfall.symbolsByModule) ? D.waterfall.symbolsByModule : {{}};
+    allMods.forEach(mod => {{
+      const syms = symsByMod[mod] || [];
+      const shortName = mod.split('/').pop() || mod;
+      const tag = document.createElement('span');
+      tag.className = 'sidebar-module-tag';
+      tag.innerHTML = shortName + '<span class="tag-count">' + syms.length + '</span>';
+      tag.title = mod + ' — ' + syms.length + ' 符号变更';
+      tag.addEventListener('click', () => {{
+        switchTab('panorama');
+        setTimeout(() => focusPanoramaNode(mod), 500);
+      }});
+      modContainer.appendChild(tag);
+    }});
+  }}
+}}
+
+// ═══════════════════════════════════════════════════════════
+// TAB 1: 变更叙事
+// ═══════════════════════════════════════════════════════════
+function renderNarrative() {{
+  // Billboard
+  const headline = D.headline || '代码变更分析';
+  const subtitle = D.subtitle || '';
+  const risk = (D.overallRisk || 'medium').toLowerCase();
+
+  document.getElementById('billboardHeadline').textContent = '\u300C' + headline + '\u300D';
+  document.getElementById('billboardSubtitle').textContent = subtitle;
+
+  const tagsHtml = [
+    '<span class="billboard-tag files">\uD83D\uDCC4 ' + D.filesChanged + ' 个文件</span>',
+    '<span class="billboard-tag additions">+' + D.additions + ' 行新增</span>',
+    '<span class="billboard-tag deletions">-' + D.deletions + ' 行删除</span>',
+    '<span class="billboard-tag modules">' + (D.modules ? D.modules.length : 0) + ' 个模块</span>',
+    '<span class="billboard-tag risk-' + risk + '">' +
+      (risk === 'high' ? '\u26A0\uFE0F 高风险' : risk === 'medium' ? '\u26A0 中等风险' : '\u270

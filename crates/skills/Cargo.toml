@@ -28,6 +28,14 @@ path = "src/bin/behavior_boundary_discovery.rs"
 name = "architecture_doc_generator"
 path = "src/bin/architecture_doc_generator.rs"
 
+[[bin]]
+name = "llm_rubric_grader"
+path = "src/bin/llm_rubric_grader.rs"
+
+[[bin]]
+name = "report_generator"
+path = "src/bin/report_generator.rs"
+
 [dependencies]
 paporot-skill-sdk = { path = "../skill-sdk" }
 serde = { version = "1", features = ["derive"] }
